@@ -27,6 +27,9 @@ export default defineConfig(({ mode }) => {
             ),
             "import.meta.env.VITE_SERVER_BASE_URL": JSON.stringify(
                 env.SERVER_BASE_URL
+            ),
+            "import.meta.env.VITE_TWITTER_API_KEY": JSON.stringify(
+                env.VITE_TWITTER_API_KEY
             )
         },
         build: {

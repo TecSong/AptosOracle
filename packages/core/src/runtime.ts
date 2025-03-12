@@ -1654,6 +1654,7 @@ Text: ${attachment.text}
             ...additionalKeys,
         } as State;
 
+
         const actionPromises = this.actions.map(async (action: Action) => {
             const result = await action.validate(this, message, initialState);
             if (result) {
@@ -1681,6 +1682,7 @@ Text: ${attachment.text}
                 getProviders(this, message, initialState),
             ]);
 
+        elizaLogger.debug('resolvedActions debug', resolvedActions.map(action => action?.name));
         const evaluatorsData = resolvedEvaluators.filter(
             Boolean,
         ) as Evaluator[];

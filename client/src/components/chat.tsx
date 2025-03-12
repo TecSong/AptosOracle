@@ -23,6 +23,7 @@ import type { IAttachment } from "@/types";
 import { AudioRecorder } from "./audio-recorder";
 import { Badge } from "./ui/badge";
 import { useAutoScroll } from "./ui/chat/hooks/useAutoScroll";
+import { TwitterSidebar } from "./twitter-sidebar";
 
 type ExtraContentFields = {
     user: string;
@@ -43,6 +44,8 @@ export default function Page({ agentId }: { agentId: UUID }) {
     const inputRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const formRef = useRef<HTMLFormElement>(null);
+    const [isTwitterSidebarOpen, setIsTwitterSidebarOpen] = useState(true);
+    const twitterQuery = "aptos";
 
     const queryClient = useQueryClient();
 
@@ -170,8 +173,29 @@ export default function Page({ agentId }: { agentId: UUID }) {
 
     const CustomAnimatedDiv = animated.div as React.FC<AnimatedDivProps>;
 
+    const handleAudioChange = (newInput: string) => {
+        setInput(newInput);
+    };
+
+    const toggleTwitterSidebar = () => {
+        setIsTwitterSidebarOpen(!isTwitterSidebarOpen);
+    };
+
+    // 处理来自Twitter侧边栏的消息
+    const handleTwitterMessage = (message: string) => {
+        if (!message.trim()) return;
+        
+        setInput(message);
+        setTimeout(() => {
+            inputRef.current?.focus();
+        }, 100);
+    };
+
     return (
-        <div className="flex flex-col w-full h-[calc(100dvh)] p-4">
+        <div className={cn(
+            "flex flex-col w-full h-[calc(100dvh)] p-4",
+            isTwitterSidebarOpen && "pr-80"
+        )}>
             <div className="flex-1 overflow-y-auto">
                 <ChatMessageList 
                     scrollRef={scrollRef}
@@ -188,15 +212,11 @@ export default function Page({ agentId }: { agentId: UUID }) {
                                     display: "flex",
                                     flexDirection: "column",
                                     gap: "0.5rem",
-                                    padding: "1rem",
                                 }}
                             >
-                                <ChatBubble
-                                    variant={variant}
-                                    className="flex flex-row items-center gap-2"
-                                >
+                                <ChatBubble variant={variant}>
                                     {message?.user !== "user" ? (
-                                        <Avatar className="size-8 p-1 border rounded-full select-none">
+                                        <Avatar className="size-8">
                                             <AvatarImage src="/elizaos-icon.png" />
                                         </Avatar>
                                     ) : null}
@@ -299,73 +319,75 @@ export default function Page({ agentId }: { agentId: UUID }) {
                                 >
                                     <X />
                                 </Button>
-                                <img
-                                    alt="Selected file"
-                                    src={URL.createObjectURL(selectedFile)}
-                                    height="100%"
-                                    width="100%"
-                                    className="aspect-square object-contain w-16"
-                                />
+                                <p className="text-xs">
+                                    {selectedFile.name}
+                                </p>
                             </div>
                         </div>
                     ) : null}
-                    <ChatInput
-                        ref={inputRef}
-                        onKeyDown={handleKeyDown}
-                        value={input}
-                        onChange={({ target }) => setInput(target.value)}
-                        placeholder="Type your message here..."
-                        className="min-h-12 resize-none rounded-md bg-card border-0 p-3 shadow-none focus-visible:ring-0"
-                    />
-                    <div className="flex items-center p-3 pt-0">
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <div>
+                    <div className="flex items-end gap-2 p-2">
+                        <div className="flex-1">
+                            <ChatInput
+                                ref={inputRef}
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                onKeyDown={handleKeyDown}
+                                placeholder="Type a message..."
+                                className="min-h-10"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                className="hidden"
+                                onChange={handleFileChange}
+                            />
+                            <Tooltip>
+                                <TooltipTrigger asChild>
                                     <Button
-                                        variant="ghost"
+                                        type="button"
+                                        variant="outline"
                                         size="icon"
-                                        onClick={() => {
-                                            if (fileInputRef.current) {
-                                                fileInputRef.current.click();
-                                            }
-                                        }}
+                                        onClick={() =>
+                                            fileInputRef.current?.click()
+                                        }
                                     >
                                         <Paperclip className="size-4" />
-                                        <span className="sr-only">
-                                            Attach file
-                                        </span>
                                     </Button>
-                                    <input
-                                        type="file"
-                                        ref={fileInputRef}
-                                        onChange={handleFileChange}
-                                        accept="image/*"
-                                        className="hidden"
-                                    />
-                                </div>
-                            </TooltipTrigger>
-                            <TooltipContent side="left">
-                                <p>Attach file</p>
-                            </TooltipContent>
-                        </Tooltip>
-                        <AudioRecorder
-                            agentId={agentId}
-                            onChange={(newInput: string) => setInput(newInput)}
-                        />
-                        <Button
-                            disabled={!input || sendMessageMutation?.isPending}
-                            type="submit"
-                            size="sm"
-                            className="ml-auto gap-1.5 h-[30px]"
-                        >
-                            {sendMessageMutation?.isPending
-                                ? "..."
-                                : "Send Message"}
-                            <Send className="size-3.5" />
-                        </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Attach file</TooltipContent>
+                            </Tooltip>
+                            <AudioRecorder
+                                agentId={agentId}
+                                onChange={handleAudioChange}
+                            />
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        type="submit"
+                                        size="icon"
+                                        disabled={
+                                            sendMessageMutation.isPending ||
+                                            (!input && !selectedFile)
+                                        }
+                                    >
+                                        <Send className="size-4" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Send message</TooltipContent>
+                            </Tooltip>
+                        </div>
                     </div>
                 </form>
             </div>
+            
+            <TwitterSidebar 
+                query={twitterQuery}
+                isOpen={isTwitterSidebarOpen}
+                onToggle={toggleTwitterSidebar}
+                onSendToChat={handleTwitterMessage}
+            />
         </div>
     );
 }
