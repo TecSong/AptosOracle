@@ -1,13 +1,17 @@
-import { Action } from '@elizaos/core';
+import { Action, IAgentRuntime, Memory, State } from '@elizaos/core';
 import { SwapTokenParams } from '../types';
 
 export const SWAP_TOKEN: Action = {
   name: 'SWAP_TOKEN',
   description: 'Swap one token for another on Aptos network',
   similes: [
-    'Exchange tokens',
-    'Convert cryptocurrency',
-    'Trade tokens'
+    'SWAP_TOKEN',
+    'SWAP_CRYPTO',
+    'SWAP_TOKENS',
+    'SWAP_CURRENCY',
+    'SWAP_TRADE',
+    'SWAP_EXCHANGE',
+    'SWAP_CONVERT',
   ],
   examples: [
     [
@@ -35,7 +39,7 @@ export const SWAP_TOKEN: Action = {
       }
     ]
   ],
-  handler: async (runtime, message, state) => {
+  handler: async (runtime: IAgentRuntime, message: Memory, state: State) => {
     const params = message.content as any;
     const { fromToken, toToken, amount, slippage = '0.5' } = params;
     
@@ -83,8 +87,7 @@ You can view the transaction details on the Aptos Explorer.
       };
     }
   },
-  validate: async (runtime, message) => {
-    const params = message.content as any;
-    return !!(params.fromToken && params.toToken && params.amount);
+  validate: async (runtime: IAgentRuntime, message: Memory) => {
+    return true;
   }
 }; 
