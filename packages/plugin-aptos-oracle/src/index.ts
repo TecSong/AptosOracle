@@ -1,6 +1,7 @@
 import { Plugin } from '@elizaos/core';
 import { FETCH_TOKEN_DETAILS } from './actions/fetchTokenDetails';
 import { SWAP_TOKEN } from './actions/swapToken';
+import { ANALYZE_TWEET_SENTIMENT } from './actions/analyzeTweetSentiment';
 import { TokenProvider } from './providers/tokenProvider';
 
 // Create Aptos Oracle plugin
@@ -12,7 +13,8 @@ const plugin: Plugin = {
   // Register plugin actions
   actions: [
     FETCH_TOKEN_DETAILS,
-    SWAP_TOKEN
+    SWAP_TOKEN,
+    ANALYZE_TWEET_SENTIMENT
   ],
   providers: [
     TokenProvider

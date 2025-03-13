@@ -13,6 +13,14 @@ export interface TokenDetails {
   error?: string;  // Error message, used when token data retrieval fails
 }
 
+// Tweet Sentiment Analysis Result Interface
+export interface SentimentAnalysisResult {
+  tokenSymbol: string;
+  sentiment: 'bullish' | 'bearish' | 'neutral';
+  score: number; // Scale from -10 (extremely bearish) to 10 (extremely bullish), 0 is neutral
+  reasoning: string;
+}
+
 // Token Transfer Parameters
 export interface TransferTokenParams {
   tokenSymbol: string;
