@@ -11,7 +11,7 @@ import {
 } from "@elizaos/core";
 import { TokenDetails } from '../types';
 
-// 定义 Token 查询输入参数接口
+// Define Token query input parameters interface
 interface TokenQueryInput {
     tokenSymbol: string;
     includeMarketData: boolean;
@@ -66,7 +66,7 @@ export const FETCH_TOKEN_DETAILS: Action = {
             };
         }
         
-        // 遍历 providers 查找具有 fetchTokenDetails 功能的 provider
+        // Iterate through providers to find one with fetchTokenDetails capability
         let aptosProviderData = null;
         
         for (const provider of runtime.providers) {
@@ -86,7 +86,7 @@ export const FETCH_TOKEN_DETAILS: Action = {
         }
 
         try {
-            // 调用 provider 的方法获取信息
+            // Call the provider's method to get information
             const tokenDetails: TokenDetails = await aptosProviderData.fetchTokenDetails(
                 tokenQuery.tokenSymbol,
                 {
@@ -95,10 +95,10 @@ export const FETCH_TOKEN_DETAILS: Action = {
                 }
             );
             
-            // 格式化 token 详情响应
+            // Format token details response
             const formattedResponse = formatTokenDetailsResponse(tokenDetails);
             
-            // 调用 callback 函数（如果存在）
+            // Call callback function (if exists)
             if (callback) {
                 await callback({
                     text: formattedResponse.content,
@@ -145,7 +145,7 @@ export const FETCH_TOKEN_DETAILS: Action = {
 };
 
 /**
- * 从用户消息中提取并验证 Token 查询参数
+ * Extract and validate Token query parameters from user message
  */
 export async function extractAndValidateTokenQuery(
     text: string,
@@ -169,7 +169,7 @@ No explanations. No markdown. No extra text.`;
     });
 
     try {
-        // 使用正则表达式提取 JSON 对象
+        // Use regex to extract JSON object
         const jsonString = content.match(/\{[\s\S]*?\}/)?.[0] || '{}';
         const configuration = parseJSONObjectFromText(jsonString);
         return validateTokenQueryInput(configuration);
@@ -180,7 +180,7 @@ No explanations. No markdown. No extra text.`;
 }
 
 /**
- * 验证 Token 查询输入参数
+ * Validate Token query input parameters
  */
 function validateTokenQueryInput(obj: Record<string, any>): TokenQueryInput | null {
     if (!obj.tokenSymbol) {
@@ -190,22 +190,32 @@ function validateTokenQueryInput(obj: Record<string, any>): TokenQueryInput | nu
     
     return {
         tokenSymbol: String(obj.tokenSymbol),
-        includeMarketData: obj.includeMarketData !== false, // 默认为 true
+        includeMarketData: obj.includeMarketData !== false, // Default to true
         includeSocialData: Boolean(obj.includeSocialData)
     };
 }
 
 /**
- * 格式化 Token 详情响应
+ * Format Token details response
  */
 function formatTokenDetailsResponse(tokenDetails: TokenDetails) {
+    // If error message exists, return it directly
+    if (tokenDetails.error) {
+        return {
+            type: 'text',
+            content: tokenDetails.error
+        };
+    }
+
     let content = `
 Token Information for ${tokenDetails.name} (${tokenDetails.symbol}):
 - Decimals: ${tokenDetails.decimals}
 ${tokenDetails.price !== undefined ? `- Current Price: $${tokenDetails.price.toFixed(4)}` : ''}
+${tokenDetails.priceChangePercentage24h !== undefined ? `- Price Change (24h): ${tokenDetails.priceChangePercentage24h > 0 ? '+' : ''}${tokenDetails.priceChangePercentage24h.toFixed(2)}%` : ''}
 ${tokenDetails.marketCap !== undefined ? `- Market Cap: $${tokenDetails.marketCap.toLocaleString()}` : ''}
 ${tokenDetails.volume24h !== undefined ? `- 24h Volume: $${tokenDetails.volume24h.toLocaleString()}` : ''}
 ${tokenDetails.totalSupply ? `- Total Supply: ${tokenDetails.totalSupply}` : ''}
+${tokenDetails.imageUrl ? `- Logo: ${tokenDetails.imageUrl}` : ''}
     `.trim();
 
     return {

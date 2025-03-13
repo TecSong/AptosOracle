@@ -43,7 +43,7 @@ export const SWAP_TOKEN: Action = {
     const params = message.content as any;
     const { fromToken, toToken, amount, slippage = '0.5' } = params;
     
-    // 遍历 providers 查找具有 swapToken 功能的 provider
+    // Iterate through providers to find one with swapToken capability
     let aptosProviderData = null;
     
     for (const provider of runtime.providers) {

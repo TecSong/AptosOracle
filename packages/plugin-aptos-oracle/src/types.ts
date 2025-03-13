@@ -1,5 +1,6 @@
-// Token 详情接口
+// Token Details Interface
 export interface TokenDetails {
+  id?: string;  // Unique token identifier in CoinGecko API
   name: string;
   symbol: string;
   decimals: number;
@@ -7,16 +8,19 @@ export interface TokenDetails {
   price?: number;
   marketCap?: number;
   volume24h?: number;
+  priceChangePercentage24h?: number;  // 24-hour price change percentage
+  imageUrl?: string;  // Token icon URL
+  error?: string;  // Error message, used when token data retrieval fails
 }
 
-// Token 转账参数
+// Token Transfer Parameters
 export interface TransferTokenParams {
   tokenSymbol: string;
   amount: string;
   recipientAddress: string;
 }
 
-// Token 交换参数
+// Token Swap Parameters
 export interface SwapTokenParams {
   fromToken: string;
   toToken: string;
@@ -24,7 +28,7 @@ export interface SwapTokenParams {
   slippage: string;
 }
 
-// 社交媒体趋势分析结果
+// Social Media Trend Analysis Results
 export interface SocialTrendAnalysis {
   sentiment: 'positive' | 'negative' | 'neutral';
   sentimentScore: number;
@@ -33,7 +37,7 @@ export interface SocialTrendAnalysis {
   changePercent24h: number;
 }
 
-// 插件环境配置
+// Plugin Environment Configuration
 export interface AptosOracleEnvironment {
   apiKey?: string;
   apiEndpoint?: string;

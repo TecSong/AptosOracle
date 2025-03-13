@@ -1,41 +1,11 @@
 import { TokenDetails, SocialTrendAnalysis } from '../types';
-import { IAgentRuntime, ICacheManager, Memory, Provider, State } from '@elizaos/core';
+import { IAgentRuntime, ICacheManager, Memory, Provider, State, elizaLogger } from '@elizaos/core';
 import { getEnvironment } from '../environment';
 import NodeCache from 'node-cache';
 import path from 'path';
+import https from 'https';
 
-// 模拟的代币数据，实际应用中应该从 API 获取
-const mockTokens: Record<string, TokenDetails> = {
-  APT: {
-    name: 'Aptos',
-    symbol: 'APT',
-    decimals: 8,
-    totalSupply: '1000000000',
-    price: 8.45,
-    marketCap: 2450000000,
-    volume24h: 125000000
-  },
-  CAKE: {
-    name: 'PancakeSwap',
-    symbol: 'CAKE',
-    decimals: 8,
-    totalSupply: '750000000',
-    price: 2.35,
-    marketCap: 450000000,
-    volume24h: 25000000
-  },
-  USDC: {
-    name: 'USD Coin',
-    symbol: 'USDC',
-    decimals: 6,
-    totalSupply: '5000000000',
-    price: 1.0,
-    marketCap: 5000000000,
-    volume24h: 500000000
-  }
-};
-
-// 模拟的社交媒体趋势数据
+// Mock social media trend data
 const mockSocialTrends: Record<string, SocialTrendAnalysis> = {
   APT: {
     sentiment: 'positive',
@@ -60,14 +30,56 @@ const mockSocialTrends: Record<string, SocialTrendAnalysis> = {
   }
 };
 
+/**
+ * Retry function for retrying operations on failure
+ */
+async function withRetry<T>(
+  operation: () => Promise<T>,
+  retries = 3,
+  delay = 1000,
+  backoff = 2
+): Promise<T> {
+  let lastError: Error;
+  let waitTime = delay;
+
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error as Error;
+      elizaLogger.warn(`Operation failed (attempt ${attempt + 1}/${retries}): ${lastError.message}`);
+      
+      if (attempt < retries - 1) {
+        elizaLogger.info(`Retrying in ${waitTime}ms...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        waitTime *= backoff; // Exponential backoff
+      }
+    }
+  }
+
+  throw lastError!;
+}
+
 class TokenDetailsService {
   private cache: NodeCache;
   private cacheKey = "aptos/tokens";
   private cacheManager: ICacheManager;
+  private apiKey: string;
+  private agent: https.Agent;
 
   constructor(cacheManager: ICacheManager) {
     this.cacheManager = cacheManager;
-    this.cache = new NodeCache({ stdTTL: 300 }); // 5分钟缓存
+    this.cache = new NodeCache({ stdTTL: 300 }); // 5-minute cache
+    
+    // Get API key from environment variables or configuration
+    this.apiKey = process.env.COINGECKO_API_KEY || 'DEMO_KEY';
+    
+    // Create an HTTPS agent for keeping connections alive
+    this.agent = new https.Agent({
+      keepAlive: true,
+      timeout: 5000,
+      rejectUnauthorized: false
+    });
   }
 
   private async readFromCache<T>(key: string): Promise<T | null> {
@@ -79,21 +91,21 @@ class TokenDetailsService {
 
   private async writeToCache<T>(key: string, data: T): Promise<void> {
     await this.cacheManager.set(path.join(this.cacheKey, key), data, {
-      expires: Date.now() + 5 * 60 * 1000, // 5分钟过期
+      expires: Date.now() + 5 * 60 * 1000, // 5-minute expiration
     });
   }
 
   private async getCachedData<T>(key: string): Promise<T | null> {
-    // 先检查内存缓存
+    // First check memory cache
     const cachedData = this.cache.get<T>(key);
     if (cachedData) {
       return cachedData;
     }
 
-    // 检查文件缓存
+    // Check file cache
     const fileCachedData = await this.readFromCache<T>(key);
     if (fileCachedData) {
-      // 更新内存缓存
+      // Update memory cache
       this.cache.set(key, fileCachedData);
       return fileCachedData;
     }
@@ -102,49 +114,165 @@ class TokenDetailsService {
   }
 
   private async setCachedData<T>(cacheKey: string, data: T): Promise<void> {
-    // 同时更新内存缓存和文件缓存
+    // Update both memory cache and file cache
     this.cache.set(cacheKey, data);
     await this.writeToCache(cacheKey, data);
   }
 
-  // 获取代币详情
-  async fetchTokenDetails(symbol: string): Promise<TokenDetails> {
+  /**
+   * Search for token ID from CoinGecko API
+   */
+  private async searchTokenId(symbol: string): Promise<{ id: string, name: string, symbol: string } | null> {
+    try {
+      return await withRetry(async () => {
+        const response = await fetch(`https://pro-api.coingecko.com/api/v3/search?query=${symbol}`, {
+          headers: {
+            'accept': 'application/json',
+            'x-cg-pro-api-key': this.apiKey
+          },
+          // @ts-ignore - Node.js fetch type definitions may not include agent
+          agent: this.agent,
+          timeout: 5000
+        });
+
+        if (!response.ok) {
+          throw new Error(`API request failed with status ${response.status}`);
+        }
+
+        const data = await response.json();
+        const coins = data.coins;
+        
+        // Try to find an exact match for the symbol (case-insensitive)
+        const exactMatch = coins.find((coin: any) => 
+          coin.symbol.toLowerCase() === symbol.toLowerCase()
+        );
+        
+        if (exactMatch) {
+          return {
+            id: exactMatch.id,
+            name: exactMatch.name,
+            symbol: exactMatch.symbol.toUpperCase()
+          };
+        }
+        
+        // If no exact match, return the first result (if any)
+        if (coins.length > 0) {
+          return {
+            id: coins[0].id,
+            name: coins[0].name,
+            symbol: coins[0].symbol.toUpperCase()
+          };
+        }
+        
+        return null;
+      });
+    } catch (error) {
+      elizaLogger.error(`Error searching for token ${symbol}:`, error);
+      throw new Error(`Failed to search for token ${symbol}`);
+    }
+  }
+
+  /**
+   * Get detailed token information
+   */
+  async fetchTokenDetails(symbol: string, options: { includeMarketData: boolean, includeSocialData: boolean } = { includeMarketData: true, includeSocialData: false }): Promise<TokenDetails> {
     const cacheKey = `token:${symbol.toUpperCase()}`;
     
-    // 尝试从缓存获取
+    // Try to get from cache
     const cachedToken = await this.getCachedData<TokenDetails>(cacheKey);
     if (cachedToken) {
       return cachedToken;
     }
     
-    // 实际应用中应该调用 Aptos API
-    const token = mockTokens[symbol.toUpperCase()];
-    if (!token) {
-      throw new Error(`Token ${symbol} not found`);
+    try {
+      // 1. First search for token ID
+      const tokenInfo = await this.searchTokenId(symbol);
+      if (!tokenInfo) {
+        throw new Error(`Token ${symbol} not found in CoinGecko`);
+      }
+      
+      // 2. Use ID to get detailed information
+      return await withRetry(async () => {
+        const url = new URL(`https://pro-api.coingecko.com/api/v3/coins/${tokenInfo.id}`);
+        url.searchParams.append('localization', 'false');
+        url.searchParams.append('tickers', 'true');
+        url.searchParams.append('market_data', options.includeMarketData.toString());
+        url.searchParams.append('community_data', options.includeSocialData.toString());
+        url.searchParams.append('developer_data', 'false');
+        
+        elizaLogger.info(`API Key: ${this.apiKey}`);
+        const response = await fetch(url.toString(), {
+          headers: {
+            'accept': 'application/json',
+            'x-cg-pro-api-key': this.apiKey
+          },
+          // @ts-ignore - Node.js fetch type definitions may not include agent
+          agent: this.agent,
+          timeout: 5000
+        });
+
+        if (!response.ok) {
+          throw new Error(`API request failed with status ${response.status}`);
+        }
+        
+        const data = await response.json();
+        const marketData = data.market_data || {};
+        const tickers = data.tickers || [];
+        
+        // Find the first trading pair using USDT as the target currency
+        const usdtTicker = tickers.find((ticker: any) => ticker.target === 'USDT');
+        
+        // Extract price information
+        let price = marketData.current_price?.usd;
+        if (!price && usdtTicker) {
+          price = usdtTicker.converted_last?.usd || usdtTicker.last;
+        }
+        
+        // Extract 24-hour price change percentage
+        let priceChangePercentage24h = marketData.price_change_percentage_24h;
+        
+        // Build TokenDetails object
+        const tokenDetails: TokenDetails = {
+          id: data.id,
+          name: data.name,
+          symbol: data.symbol.toUpperCase(),
+          decimals: data.detail_platforms?.[data.asset_platform_id]?.decimal_place || 8,
+          totalSupply: marketData.total_supply?.toString() || undefined,
+          price: price,
+          marketCap: marketData.market_cap?.usd,
+          volume24h: marketData.total_volume?.usd,
+          priceChangePercentage24h: priceChangePercentage24h,
+          imageUrl: data.image?.small
+        };
+        
+        // Cache results
+        await this.setCachedData(cacheKey, tokenDetails);
+        
+        return tokenDetails;
+      });
+    } catch (error) {
+      elizaLogger.error(`Error fetching token details for ${symbol}:`, error);
+      throw new Error(`Failed to fetch token details for ${symbol}: ${(error as Error).message}`);
     }
-    
-    // 缓存结果
-    await this.setCachedData(cacheKey, token);
-    return token;
   }
 
-  // 分析社交媒体趋势
+  // Analyze social media trends
   async analyzeSocialTrends(tokenSymbol: string): Promise<SocialTrendAnalysis> {
     const cacheKey = `social:${tokenSymbol.toUpperCase()}`;
     
-    // 尝试从缓存获取
+    // Try to get from cache
     const cachedTrend = await this.getCachedData<SocialTrendAnalysis>(cacheKey);
     if (cachedTrend) {
       return cachedTrend;
     }
     
-    // 实际应用中应该调用社交媒体 API
+    // In a real application, should call social media API
     const trend = mockSocialTrends[tokenSymbol.toUpperCase()];
     if (!trend) {
       throw new Error(`Social trend data for ${tokenSymbol} not found`);
     }
     
-    // 缓存结果
+    // Cache results
     await this.setCachedData(cacheKey, trend);
     return trend;
   }
@@ -155,7 +283,21 @@ export const TokenProvider: Provider = {
     const tokenService = new TokenDetailsService(runtime.cacheManager);
     
     return {
-      fetchTokenDetails: tokenService.fetchTokenDetails.bind(tokenService)
+      fetchTokenDetails: async (symbol: string, options: { includeMarketData: boolean, includeSocialData: boolean } = { includeMarketData: true, includeSocialData: false }) => {
+        try {
+          return await tokenService.fetchTokenDetails(symbol, options);
+        } catch (error) {
+          elizaLogger.error(`Could not fetch token details: ${(error as Error).message}`);
+          // Return a TokenDetails object with error information
+          return {
+            name: symbol.toUpperCase(),
+            symbol: symbol.toUpperCase(),
+            decimals: 0,
+            error: `Unable to fetch information for the ${symbol.toUpperCase()} token. Please try again later.`
+          } as TokenDetails;
+        }
+      },
+      analyzeSocialTrends: tokenService.analyzeSocialTrends.bind(tokenService)
     };
   }
 }; 
