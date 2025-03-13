@@ -215,7 +215,6 @@ ${tokenDetails.priceChangePercentage24h !== undefined ? `- Price Change (24h): $
 ${tokenDetails.marketCap !== undefined ? `- Market Cap: $${tokenDetails.marketCap.toLocaleString()}` : ''}
 ${tokenDetails.volume24h !== undefined ? `- 24h Volume: $${tokenDetails.volume24h.toLocaleString()}` : ''}
 ${tokenDetails.totalSupply ? `- Total Supply: ${tokenDetails.totalSupply}` : ''}
-${tokenDetails.imageUrl ? `- Logo: ${tokenDetails.imageUrl}` : ''}
     `.trim();
 
     return {
