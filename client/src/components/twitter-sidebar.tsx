@@ -29,41 +29,41 @@ export function TwitterSidebar({
   const [searchQuery, setSearchQuery] = useState(query);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // 使用useRef创建一个上次处理的token缓存，用于跟踪当前已处理的token
+  // Use useRef to create a cache for the last processed token, to track currently processed tokens
   const lastHandledTokenRef = useRef<{token: string, element: HTMLElement} | null>(null);
-  // 创建防抖计时器ref
+  // Create debounce timer ref
   const debounceTimerRef = useRef<number | null>(null);
 
-  // 创建一个memoization缓存，用于存储已处理过的推文文本
+  // Create a memoization cache for storing processed tweet texts
   const formattedTextCache = useRef<Map<string, string>>(new Map());
   
-  // 清理缓存的辅助函数
+  // Helper function to clear the cache
   const clearFormattedTextCache = useCallback(() => {
     formattedTextCache.current.clear();
   }, []);
   
-  // 使用useCallback优化fetchTweets函数，避免不必要的重新创建
+  // Use useCallback to optimize fetchTweets function, avoiding unnecessary recreations
   const fetchTweets = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     
-    // 重置所有与Token相关的状态
+    // Reset all Token-related states
     setHoveredToken(null);
     setHoverElementRef(null);
     
-    // 重置最后处理的token引用和清理计时器
+    // Reset the last processed token reference and clear timer
     lastHandledTokenRef.current = null;
     if (debounceTimerRef.current !== null) {
       window.clearTimeout(debounceTimerRef.current);
       debounceTimerRef.current = null;
     }
     
-    // 清理文本格式化缓存
+    // Clear text formatting cache
     clearFormattedTextCache();
     
-    // 清除所有token元素的高亮样式（如果存在）
+    // Clear highlight styling from all token elements (if any)
     if (tweetContainerRef.current) {
-      // 使用更高效的选择器，限制在当前容器内
+      // Use more efficient selector, limited to the current container
       const highlightedTokens = tweetContainerRef.current.querySelectorAll('.bg-yellow-200, .dark\\:bg-yellow-800\\/60');
       if (highlightedTokens.length > 0) {
         highlightedTokens.forEach(token => {
@@ -72,7 +72,7 @@ export function TwitterSidebar({
       }
     }
     
-    console.log("开始获取推文...");
+    console.log("Start getting tweets...");
     
     try {
       const response = await fetchTwitterTimeline(searchQuery);
@@ -82,43 +82,43 @@ export function TwitterSidebar({
       }
       
       if (!response.tweets || response.tweets.length === 0) {
-        console.log("API返回的tweets为空或不存在", response);
+        console.log("API returned empty or non-existent tweets", response);
         setError('No tweets found in API response');
-        setTweets([]); // 确保清空旧的tweets
+        setTweets([]); // Ensure old tweets are cleared
       } else {
-        console.log(`成功获取到 ${response.tweets.length} 条推文`);
+        console.log(`Successfully got ${response.tweets.length} tweets`);
         
-        // 使用requestAnimationFrame分批处理数据，避免UI阻塞
+        // Use requestAnimationFrame to batch process data, to avoid UI blocking
         window.requestAnimationFrame(() => {
-          // 先设置推文数据，确保处理undefined情况
+          // First set tweet data, to ensure handling undefined cases
           setTweets(response.tweets || []);
           setIsLoading(false);
         });
       }
     } catch (error) {
-      console.error("获取推文时出错:", error);
+      console.error("Error getting tweets:", error);
       setError(error instanceof Error ? error.message : String(error));
-      setTweets([]); // 确保清空旧的tweets
+      setTweets([]); // Ensure old tweets are cleared
       setIsLoading(false);
     }
   }, [searchQuery, setIsLoading, setError, setTweets, setHoveredToken, setHoverElementRef, clearFormattedTextCache]);
 
-  // 只在query props变化时更新searchQuery
+  // Only update searchQuery when query props change
   useEffect(() => {
     setSearchQuery(query);
   }, [query]);
   
-  // 当侧边栏打开时自动执行搜索
+  // Automatically execute search when sidebar is opened
   useEffect(() => {
     if (isOpen) {
       fetchTweets();
     }
   }, [isOpen, fetchTweets]);
 
-  // 当侧边栏打开时，聚焦到搜索框
+  // Focus to search box when sidebar is opened
   useEffect(() => {
     if (isOpen && searchInputRef.current) {
-      // 使用短暂的延迟确保DOM已更新
+      // Use short delay to ensure DOM is updated
       const timeoutId = setTimeout(() => {
         searchInputRef.current?.focus();
       }, 50);
@@ -127,21 +127,21 @@ export function TwitterSidebar({
     }
   }, [isOpen]);
 
-  // 监听点击事件，如果点击的不是token按钮，则隐藏按钮
+  // Listen for click events, if clicked is not token button, hide button
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      // 检查点击的是否是token元素本身
+      // Check if clicked is token element itself
       const target = event.target as HTMLElement;
       if (target.classList.contains('token-keyword')) {
         return;
       }
       
-      // 检查点击的是否是按钮
+      // Check if clicked is button
       if (tokenButtonRef.current && !tokenButtonRef.current.contains(event.target as Node)) {
         setHoveredToken(null);
         setHoverElementRef(null);
         
-        // 清除所有token元素的高亮样式
+        // Clear highlight styling from all token elements
         if (tweetContainerRef.current) {
           const tokens = tweetContainerRef.current.querySelectorAll('.token-keyword');
           tokens.forEach(token => {
@@ -167,38 +167,38 @@ export function TwitterSidebar({
     });
   };
 
-  // Token关键字列表
+  // Token keyword list
   const TOKEN_KEYWORDS = ['Aptos', 'APT', 'amAPT', 'stAPT', 'TRU', 'CELL', 'TruAPT'];
   
-  // 带前缀的关键字列表（对这些关键字也做悬浮处理）
+  // Prefixed keyword list (also do hover processing for these keywords)
   const PREFIXED_KEYWORDS = ['$APT', '$APTOS', '#APT', '#Aptos', '$TRU', '$CELL'];
   
-  // 生成唯一ID，用于标记DOM元素
+  // Generate unique ID, for marking DOM elements
   const generateUniqueId = () => {
     return `token-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
   };
 
-  // 添加一个更强大的清理函数，确保推文显示正确，同时保留交互所需的属性
+  // Add a more robust cleanup function, to ensure tweet display is correct, while retaining interactive attributes
   const sanitizeTweetText = useCallback((html: string): string => {
     if (!html) return '';
     
     try {
-      // 创建一个临时的DOM元素来解析HTML
+      // Create a temporary DOM element to parse HTML
       const parser = new DOMParser();
       const doc = parser.parseFromString(`<div>${html}</div>`, 'text/html');
       const container = doc.body.firstChild as HTMLElement;
       
       if (!container) return html;
       
-      // 处理所有链接，使他们保持正确的文本显示
+      // Handle all links, to keep correct text display
       const links = container.querySelectorAll('a');
       links.forEach(link => {
-        // 保留data-*属性
+        // Keep data-* attributes
         const dataToken = link.getAttribute('data-token');
         const dataTweetId = link.getAttribute('data-tweet-id');
         const dataInstanceId = link.getAttribute('data-instance-id');
         
-        // 移除所有不需要显示的属性
+        // Remove all unnecessary attributes
         Array.from(link.attributes).forEach(attr => {
           if (attr.name !== 'data-token' && 
               attr.name !== 'data-tweet-id' && 
@@ -209,21 +209,21 @@ export function TwitterSidebar({
           }
         });
         
-        // 重新设置必要的属性
+        // Re-set necessary attributes
         if (dataToken) link.setAttribute('data-token', dataToken);
         if (dataTweetId) link.setAttribute('data-tweet-id', dataTweetId);
         if (dataInstanceId) link.setAttribute('data-instance-id', dataInstanceId);
       });
       
-      // 处理所有token关键字span
+      // Handle all token keyword spans
       const tokenSpans = container.querySelectorAll('.token-keyword');
       tokenSpans.forEach(span => {
-        // 保留data-*属性
+        // Keep data-* attributes
         const dataToken = span.getAttribute('data-token');
         const dataTweetId = span.getAttribute('data-tweet-id');
         const dataInstanceId = span.getAttribute('data-instance-id');
         
-        // 移除所有不需要显示的属性
+        // Remove all unnecessary attributes
         Array.from(span.attributes).forEach(attr => {
           if (attr.name !== 'data-token' && 
               attr.name !== 'data-tweet-id' && 
@@ -233,7 +233,7 @@ export function TwitterSidebar({
           }
         });
         
-        // 重新设置必要的属性
+        // Re-set necessary attributes
         if (dataToken) span.setAttribute('data-token', dataToken);
         if (dataTweetId) span.setAttribute('data-tweet-id', dataTweetId);
         if (dataInstanceId) span.setAttribute('data-instance-id', dataInstanceId);
@@ -242,24 +242,24 @@ export function TwitterSidebar({
       return container.innerHTML;
     } catch (error) {
       console.error('Error sanitizing tweet text:', error);
-      return html; // 如果出错，返回原始HTML
+      return html; // If error, return original HTML
     }
   }, []);
 
-  // 处理推文文本中的链接、提及、话题标签和token关键字
+  // Handle link, mention, hashtag, and token keyword in tweet text
   const formatTweetText = useCallback((tweet: Tweet) => {
-    // 确保文本存在
+    // Ensure text exists
     if (!tweet.id) {
       console.warn('Tweet has no ID', tweet);
       return '';
     }
     
-    // 检查缓存中是否已处理过该推文
+    // Check if tweet text has been processed before
     if (formattedTextCache.current.has(tweet.id)) {
       return formattedTextCache.current.get(tweet.id) || '';
     }
     
-    // 优先使用full_text，如果不存在则使用text
+    // Prioritize full_text, if not exist use text
     let text = tweet.full_text || tweet.text || '';
     
     if (!text) {
@@ -268,25 +268,25 @@ export function TwitterSidebar({
     }
     
     try {
-      // 创建一个DOM树来处理文本，避免处理已经被处理过的内容
+      // Create a DOM tree to process text, to avoid processing already processed content
       const tempDiv = document.createElement('div');
       tempDiv.textContent = text;
       text = tempDiv.innerHTML;
       
-      // 记录已经处理过的节点位置，避免重复处理
+      // Record already processed node positions, to avoid repeated processing
       interface ProcessedRange {
         start: number;
         end: number;
       }
       const processedRanges: ProcessedRange[] = [];
       
-      // 替换链接
+      // Replace links
       if (tweet.entities?.urls && tweet.entities.urls.length > 0) {
         tweet.entities.urls.forEach(url => {
-          // 使用try-catch包裹，防止单个url处理失败影响整体
+          // Use try-catch to wrap, to prevent single url processing failure affecting overall
           try {
             if (url.url) {
-              // 记录URL在原文中的位置
+              // Record URL position in original text
               const urlIndex = text.indexOf(url.url);
               if (urlIndex >= 0) {
                 processedRanges.push({
@@ -295,10 +295,10 @@ export function TwitterSidebar({
                 });
               }
               
-              // 隐藏完整URL，只显示display_url，并添加链接功能
+              // Hide full URL, only display display_url, and add link functionality
               text = text.replace(url.url, `<a href="${url.expanded_url || url.url}" class="text-blue-500 hover:underline">${url.display_url || url.url}</a>`);
               
-              // 移除所有t.co类型的URL后缀（完全从文本中移除）
+              // Remove all t.co type URL suffixes (completely remove from text)
               if (url.display_url && url.display_url.startsWith('t.co/')) {
                 text = text.replace(` https://t.co/${url.display_url.substring(5)}`, '');
                 text = text.replace(` http://t.co/${url.display_url.substring(5)}`, '');
@@ -310,19 +310,19 @@ export function TwitterSidebar({
         });
       }
       
-      // 替换@提及
+      // Replace @ mentions
       if (tweet.entities?.user_mentions && tweet.entities.user_mentions.length > 0) {
         tweet.entities.user_mentions.forEach(mention => {
           try {
             if (mention.screen_name) {
               const mentionText = `@${mention.screen_name}`;
-              // 记录提及在原文中的位置
+              // Record mention position in original text
               let startIndex = 0;
               let mentionIndex: number;
               const mentionRegex = new RegExp(mentionText, 'gi');
               
               while ((mentionIndex = text.indexOf(mentionText, startIndex)) !== -1) {
-                // 检查这个位置是否已经被处理过
+                // Check if this position has been processed before
                 const isProcessed = processedRanges.some(
                   range => mentionIndex >= range.start && mentionIndex < range.end
                 );
@@ -337,14 +337,14 @@ export function TwitterSidebar({
                 startIndex = mentionIndex + 1;
               }
               
-              // 只替换未处理过的@提及
+              // Only replace unprocessed @ mentions
               text = text.replace(mentionRegex, (match, offset) => {
                 const isProcessed = processedRanges.some(
                   range => offset >= range.start && offset < range.end
                 );
                 
                 if (isProcessed) {
-                  return match; // 返回原始文本，不做替换
+                  return match; // Return original text, no replacement
                 }
                 
                 return `<a href="https://twitter.com/${mention.screen_name}" class="text-blue-500 hover:underline">${match}</a>`;
@@ -356,19 +356,19 @@ export function TwitterSidebar({
         });
       }
       
-      // 替换#标签
+      // Replace # tags
       if (tweet.entities?.hashtags && tweet.entities.hashtags.length > 0) {
         tweet.entities.hashtags.forEach(hashtag => {
           try {
             if (hashtag.text) {
               const hashtagText = `#${hashtag.text}`;
-              // 记录hashtag在原文中的位置
+              // Record hashtag position in original text
               let startIndex = 0;
               let hashtagIndex: number;
               const hashtagRegex = new RegExp(hashtagText, 'gi');
               
               while ((hashtagIndex = text.indexOf(hashtagText, startIndex)) !== -1) {
-                // 检查这个位置是否已经被处理过
+                // Check if this position has been processed before
                 const isProcessed = processedRanges.some(
                   range => hashtagIndex >= range.start && hashtagIndex < range.end
                 );
@@ -383,14 +383,14 @@ export function TwitterSidebar({
                 startIndex = hashtagIndex + 1;
               }
               
-              // 只替换未处理过的#标签
+              // Only replace unprocessed # tags
               text = text.replace(hashtagRegex, (match, offset) => {
                 const isProcessed = processedRanges.some(
                   range => offset >= range.start && offset < range.end
                 );
                 
                 if (isProcessed) {
-                  return match; // 返回原始文本，不做替换
+                  return match; // Return original text, no replacement
                 }
                 
                 return `<a href="https://twitter.com/hashtag/${hashtag.text}" class="text-blue-500 hover:underline">${match}</a>`;
@@ -402,65 +402,65 @@ export function TwitterSidebar({
         });
       }
       
-      // 动态查找所有带$或#前缀的TOKEN_KEYWORDS以及不带前缀的关键字
+      // Dynamically find all $ or # prefixed TOKEN_KEYWORDS as well as non-prefixed keywords
       TOKEN_KEYWORDS.forEach(token => {
         try {
-          // 处理不带前缀的关键字
+          // Handle non-prefixed keywords
           const plainRegex = new RegExp(`(?<![#$@])\\b${token}\\b`, 'gi');
           
-          // 处理不带前缀的关键字
+          // Handle non-prefixed keywords
           text = text.replace(plainRegex, (match, offset) => {
-            // 检查这个位置是否已经被处理过
+            // Check if this position has been processed before
             const isProcessed = processedRanges.some(
               range => offset >= range.start && offset < range.end
             );
             
             if (isProcessed) {
-              return match; // 返回原始文本，不做替换
+              return match; // Return original text, no replacement
             }
             
-            // 记录处理过的范围
+            // Record processed range
             processedRanges.push({
               start: offset,
               end: offset + match.length
             });
             
-            // 使用HTML属性的标准格式，确保它们能够被正确解析
+            // Use standard HTML attribute format, to ensure they can be correctly parsed
             return `<span class="font-bold bg-yellow-100 dark:bg-yellow-900/40 px-1 rounded cursor-pointer token-keyword" data-token="${token}" data-tweet-id="${tweet.id}" data-instance-id="${generateUniqueId()}">${match}</span>`;
           });
           
-          // 查找带$前缀的模式
+          // Find $ prefixed pattern
           const dollarRegex = new RegExp(`\\$${token}\\b`, 'gi');
-          // 查找带#前缀的模式
+          // Find # prefixed pattern
           const hashRegex = new RegExp(`\\#${token}\\b`, 'gi');
           
-          // 统一处理带前缀的关键字的函数
+          // Unified function to handle prefixed keywords
           const processPrefixedToken = (regex: RegExp, prefix: string) => {
             text = text.replace(regex, (match, offset) => {
-              // 检查这个位置是否已经被处理过
+              // Check if this position has been processed before
               const isProcessed = processedRanges.some(
                 range => offset >= range.start && offset < range.end
               );
               
               if (isProcessed) {
-                return match; // 返回原始文本，不做替换
+                return match; // Return original text, no replacement
               }
               
-              // 获取不带前缀的token值
+              // Get unprefixed token value
               const tokenValue = match.substring(prefix.length);
               
-              // 记录处理过的范围
+              // Record processed range
               processedRanges.push({
                 start: offset,
                 end: offset + match.length
               });
               
-              // 使用HTML属性的标准格式，确保它们能够被正确解析
+              // Use standard HTML attribute format, to ensure they can be correctly parsed
               return `<span class="font-bold text-blue-500 hover:underline cursor-pointer token-keyword" data-token="${tokenValue}" data-tweet-id="${tweet.id}" data-instance-id="${generateUniqueId()}">${match}</span>`;
             });
           };
           
-          // 处理带前缀的关键字
+          // Handle prefixed keywords
           processPrefixedToken(dollarRegex, '$');
           processPrefixedToken(hashRegex, '#');
         } catch (e) {
@@ -468,38 +468,38 @@ export function TwitterSidebar({
         }
       });
       
-      // 处理额外的预定义前缀关键字列表
+      // Handle additional predefined prefixed keyword list
       PREFIXED_KEYWORDS.forEach(prefixedToken => {
         try {
-          // 创建精确匹配的正则表达式
+          // Create exact match regular expression
           const regex = new RegExp(prefixedToken, 'g');
           
-          // 为每个token实例生成唯一ID，帮助调试和追踪
+          // Generate unique ID for each token instance, to help debug and track
           const instanceId = generateUniqueId();
           
-          // 将带前缀的关键字替换为可交互元素
+          // Replace prefixed keywords with interactive elements
           text = text.replace(regex, (match, offset) => {
-            // 检查这个位置是否已经被处理过
+            // Check if this position has been processed before
             const isProcessed = processedRanges.some(
               range => offset >= range.start && offset < range.end
             );
             
             if (isProcessed) {
-              return match; // 返回原始文本，不做替换
+              return match; // Return original text, no replacement
             }
             
-            // 获取不带前缀的token值
+            // Get unprefixed token value
             const tokenValue = match.startsWith('$') || match.startsWith('#') 
               ? match.substring(1) 
               : match;
             
-            // 记录处理过的范围
+            // Record processed range
             processedRanges.push({
               start: offset,
               end: offset + match.length
             });
             
-            // 使用HTML属性的标准格式，确保它们能够被正确解析
+            // Use standard HTML attribute format, to ensure they can be correctly parsed
             return `<span class="font-bold text-blue-500 hover:underline cursor-pointer token-keyword" data-token="${tokenValue}" data-tweet-id="${tweet.id}" data-instance-id="${instanceId}">${match}</span>`;
           });
         } catch (e) {
@@ -507,25 +507,25 @@ export function TwitterSidebar({
         }
       });
       
-      // 在存入缓存前先清理文本
+      // Clean text before storing in cache
       const sanitizedText = sanitizeTweetText(text);
       formattedTextCache.current.set(tweet.id, sanitizedText);
       
       return sanitizedText;
     } catch (error) {
       console.error('Error formatting tweet text:', error, tweet);
-      return tweet.full_text || tweet.text || ''; // 出错时返回原始文本
+      return tweet.full_text || tweet.text || ''; // Return original text if error
     }
   }, []);
   
-  // 当组件卸载或推文查询更改时，清除文本格式化缓存
+  // Clear text formatting cache when component unmounts or tweet query changes
   useEffect(() => {
     return () => {
       clearFormattedTextCache();
     };
   }, [query, clearFormattedTextCache]);
   
-  // 渲染媒体内容
+  // Render media content
   const renderMedia = (tweet: Tweet) => {
     if (!tweet.entities?.media || tweet.entities.media.length === 0) {
       return null;
@@ -566,18 +566,18 @@ export function TwitterSidebar({
     return null;
   };
   
-  // 渲染引用推文
+  // Render quoted tweet
   const renderQuotedTweet = (tweet: Tweet) => {
     if (!tweet.quoted_tweet) return null;
     
-    // 尝试隐藏引用推文的URL
+    // Try to hide quoted tweet URL
     if (tweet.entities?.urls) {
       tweet.entities.urls.forEach(url => {
         if (url.expanded_url?.includes('/status/') && tweet.quoted_tweet) {
-          // 这是一个引用推文链接，我们可以从文本中移除它
+          // This is a quoted tweet link, we can remove it from text
           const originalText = tweet.full_text || tweet.text || '';
           if (originalText) {
-            // 保存修改结果到full_text和text字段
+            // Save modified result to full_text and text fields
             const newText = originalText.replace(url.url, '').trim();
             tweet.text = newText;
             if (tweet.full_text) {
@@ -612,87 +612,87 @@ export function TwitterSidebar({
     );
   };
 
-  // 更新按钮位置，确保在视口内可见
+  // Update button position, to ensure visible in viewport
   const updateButtonPosition = useCallback((target: HTMLElement) => {
     if (!tokenButtonRef.current) return;
     
     const rect = target.getBoundingClientRect();
-    const buttonHeight = 28; // 估计的按钮高度
+    const buttonHeight = 28; // Estimated button height
     
-    // 计算基础位置（在关键字下方）
+    // Calculate base position (below keyword)
     let top = rect.bottom + window.scrollY;
     let left = rect.left + window.scrollX;
     
-    // 检查是否超出视口底部
+    // Check if exceeds viewport bottom
     const viewportHeight = window.innerHeight;
     if (top + buttonHeight > viewportHeight + window.scrollY) {
-      // 如果超出底部，则将按钮放在关键字上方
+      // If exceeds bottom, place button above keyword
       top = rect.top + window.scrollY - buttonHeight;
     }
     
-    // 确保按钮不超出右侧边界
-    const buttonWidth = 250; // 估计的按钮宽度
+    // Ensure button does not exceed right boundary
+    const buttonWidth = 250; // Estimated button width
     const viewportWidth = window.innerWidth;
     if (left + buttonWidth > viewportWidth) {
-      left = viewportWidth - buttonWidth - 10; // 10px边距
+      left = viewportWidth - buttonWidth - 10; // 10px margin
     }
     
-    // 应用计算后的位置
+    // Apply calculated position
     tokenButtonRef.current.style.top = `${top}px`;
     tokenButtonRef.current.style.left = `${left}px`;
-    tokenButtonRef.current.style.display = 'flex'; // 确保按钮可见
-    tokenButtonRef.current.style.position = 'fixed'; // 使用fixed定位，避免滚动影响
-    tokenButtonRef.current.style.zIndex = '9999'; // 确保在最上层
+    tokenButtonRef.current.style.display = 'flex'; // Ensure button visible
+    tokenButtonRef.current.style.position = 'fixed'; // Use fixed positioning, to avoid scroll affecting
+    tokenButtonRef.current.style.zIndex = '9999'; // Ensure on top layer
   }, []);
 
-  // 设置当前悬停的token元素
+  // Set current hovered token element
   const setCurrentHoveredToken = useCallback((element: HTMLElement | null) => {
-    // 如果元素与当前高亮元素相同，则不做任何处理
+    // If element is same as current highlighted element, do nothing
     if (element === hoverElementRef) {
       return;
     }
     
-    // 清除所有之前的高亮，仅在需要时进行DOM操作
+    // Clear all previous highlights, only do DOM operations when needed
     if (tweetContainerRef.current && hoverElementRef !== element) {
       if (hoverElementRef) {
-        // 如果有之前的高亮元素，只需移除它的样式
+        // If there is previous highlighted element, just remove its style
         hoverElementRef.classList.remove('bg-yellow-200', 'dark:bg-yellow-800/60');
       }
     }
     
-    // 更新引用
+    // Update reference
     setHoverElementRef(element);
     
     if (element) {
-      // 高亮当前元素
+      // Highlight current element
       element.classList.add('bg-yellow-200', 'dark:bg-yellow-800/60');
       
       const token = element.getAttribute('data-token');
       const tweetId = element.getAttribute('data-tweet-id');
       
       if (token && tweetId) {
-        // 清理token值，确保没有HTML标签
+        // Clean token value, to ensure no HTML tags
         const cleanToken = token.replace(/<[^>]*>/g, '').trim();
         
-        // 如果token和tweetId没有变化，避免状态更新
+        // If token and tweetId haven't changed, avoid state update
         if (!hoveredToken || hoveredToken.token !== cleanToken || hoveredToken.tweetId !== tweetId) {
-          // 非生产环境下记录日志
+          // Log only in non-production environment
           if (process.env.NODE_ENV !== 'production') {
-            console.log(`设置悬停token: ${cleanToken}, tweetId: ${tweetId}`);
+            console.log(`Set hovered token: ${cleanToken}, tweetId: ${tweetId}`);
           }
           setHoveredToken({ token: cleanToken, tweetId });
         }
         
-        // 更新按钮位置
+        // Update button position
         updateButtonPosition(element);
       }
     } else if (hoveredToken) {
-      // 仅在有先前的hoveredToken时才更新状态
+      // Only update state when there is previous hoveredToken
       setHoveredToken(null);
     }
   }, [hoveredToken, hoverElementRef, updateButtonPosition]);
   
-  // 监听窗口大小变化，重新定位按钮
+  // Listen for window size change, reposition button
   useEffect(() => {
     if (!hoveredToken || !hoverElementRef) return;
     
@@ -711,27 +711,27 @@ export function TwitterSidebar({
     };
   }, [hoveredToken, hoverElementRef, updateButtonPosition]);
   
-  // 监听tweets变化，确保在tweets更新后重新初始化token相关的处理
+  // Listen for tweets change, to ensure re-initialize token-related processing after tweets update
   useEffect(() => {
-    // 如果tweets发生变化，可能是刷新或初始加载
-    console.log(`tweets状态已更新，当前有 ${tweets.length} 条推文`);
+    // If tweets change, it could be refresh or initial load
+    console.log(`tweets state updated, currently have ${tweets.length} tweets`);
     
-    // 重置token相关状态
+    // Reset token-related states
     setHoveredToken(null);
     setHoverElementRef(null);
     
-    // 短暂延迟后，确保DOM已更新，然后重新检查和初始化token元素
+    // Short delay, to ensure DOM is updated, then re-check and initialize token elements
     if (tweets.length > 0) {
-      // 使用requestAnimationFrame确保在DOM更新后再检查元素
+      // Use requestAnimationFrame to ensure DOM updated before checking elements
       const timeoutId = window.setTimeout(() => {
         window.requestAnimationFrame(() => {
           if (tweetContainerRef.current) {
-            // 使用更高效的选择器查找所有token关键字元素
+            // Use more efficient selector to find all token keyword elements
             const tokenElements = tweetContainerRef.current.querySelectorAll('.token-keyword');
             
-            // 仅在非生产环境记录日志
+            // Log only in non-production environment
             if (process.env.NODE_ENV !== 'production') {
-              console.log(`发现 ${tokenElements.length} 个token关键字元素`);
+              console.log(`Found ${tokenElements.length} token keyword elements`);
             }
           }
         });
@@ -741,23 +741,23 @@ export function TwitterSidebar({
     }
   }, [tweets]);
 
-  // 增强的Helper函数，用来移除HTML标签和转换HTML实体
+  // Enhanced Helper function, to remove HTML tags and convert HTML entities
   const stripHtmlTags = useCallback((html: string): string => {
     if (!html) return '';
     
-    // 创建一个临时元素来解析HTML
+    // Create a temporary element to parse HTML
     const tempElement = document.createElement('div');
     
-    // 安全地设置HTML内容
+    // Safely set HTML content
     tempElement.innerHTML = html;
     
-    // 获取纯文本内容（这会自动处理HTML实体）
+    // Get plain text content (this will automatically handle HTML entities)
     let plainText = tempElement.textContent || tempElement.innerText || '';
     
-    // 移除多余的空格和换行
+    // Remove extra spaces and newlines
     plainText = plainText.replace(/\s+/g, ' ').trim();
     
-    // 替换HTML实体
+    // Replace HTML entities
     plainText = plainText
       .replace(/&amp;/g, '&')
       .replace(/&lt;/g, '<')
@@ -769,27 +769,27 @@ export function TwitterSidebar({
     return plainText;
   }, []);
 
-  // 处理token关键字点击事件
+  // Handle token keyword click event
   const handleTokenClick = useCallback((token: string) => {
     if (onSendToChat) {
-      console.log(`发送token查询到聊天: ${token}`);
+      console.log(`Send token query to chat: ${token}`);
       
-      // 处理可能带有前缀的token
+      // Handle possible prefixed token
       let cleanToken = token;
       
-      // 如果token中仍然包含$或#前缀，去除它们
+      // If token still contains $ or # prefix, remove them
       if (cleanToken.startsWith('$') || cleanToken.startsWith('#')) {
         cleanToken = cleanToken.substring(1);
       }
       
-      // 发送处理过的纯文本到聊天
-      onSendToChat(`show me the token ${cleanToken} information`);
+      // Send processed plain text to chat
+      onSendToChat(`show me the details about ${cleanToken} token`);
     }
     
     setHoveredToken(null);
     setHoverElementRef(null);
     
-    // 清除所有token元素的高亮样式
+    // Clear highlight styling from all token elements
     if (tweetContainerRef.current) {
       const tokens = tweetContainerRef.current.querySelectorAll('.token-keyword');
       tokens.forEach(token => {
@@ -798,43 +798,43 @@ export function TwitterSidebar({
     }
   }, [onSendToChat, stripHtmlTags]);
   
-  // 修改处理推文容器内的鼠标事件函数，添加更多的防错处理
+  // Modify handling tweet container mouse events function, add more error handling
   const handleTweetContainerMouseEvent = useCallback((event: React.MouseEvent) => {
-    // 判断事件类型
+    // Check event type
     if (event.type === 'mouseover') {
       const target = event.target as HTMLElement;
       
-      // 检查是否悬停在token关键字上
+      // Check if hovering over token keyword
       if (target && target.classList && target.classList.contains('token-keyword')) {
         const token = target.getAttribute('data-token');
         const tweetId = target.getAttribute('data-tweet-id');
         
-        // 添加更详细的调试信息
+        // Add more detailed debug information
         if (process.env.NODE_ENV !== 'production') {
-          console.log('悬停元素:', target.outerHTML);
-          console.log('获取到的属性:', { token, tweetId });
+          console.log('Hover element:', target.outerHTML);
+          console.log('Got attributes:', { token, tweetId });
         }
         
         if (!token || !tweetId) {
-          // 仅在开发环境记录警告
+          // Log warning only in development environment
           if (process.env.NODE_ENV !== 'production') {
-            console.warn('token关键字元素缺少必要的属性:', {
+            console.warn('token keyword element missing necessary attributes:', {
               element: target.outerHTML,
               token,
               tweetId
             });
           }
           
-          // 尝试从内部文本内容推断token值
+          // Try to infer token value from internal text content
           const innerText = target.innerText || target.textContent;
           if (innerText && TOKEN_KEYWORDS.includes(innerText)) {
-            // 如果内部文本与某个关键字匹配，则使用它作为token
+            // If internal text matches any keyword, use it as token
             const inferredToken = innerText;
             const randomTweetId = `inferred-${Date.now()}`;
             
-            console.log('已从内容中推断token:', inferredToken);
+            console.log('Inferred token from content:', inferredToken);
             
-            // 使用推断的值继续处理
+            // Use inferred value to continue processing
             handleInferredToken(target, inferredToken, randomTweetId);
             return;
           }
@@ -842,85 +842,85 @@ export function TwitterSidebar({
           return;
         }
         
-        // 清理token值，确保没有HTML标签
+        // Clean token value, to ensure no HTML tags
         const cleanToken = token.replace(/<[^>]*>/g, '').trim();
         
-        // 检查是否与上次处理的是同一个token和元素，如果是则跳过处理
+        // Check if same token and element as last processed, if so skip processing
         if (lastHandledTokenRef.current && 
             lastHandledTokenRef.current.token === cleanToken && 
             lastHandledTokenRef.current.element === target) {
           return;
         }
         
-        // 清除之前的防抖计时器
+        // Clear previous debounce timer
         if (debounceTimerRef.current !== null) {
           window.clearTimeout(debounceTimerRef.current);
           debounceTimerRef.current = null;
         }
         
-        // 创建新的防抖计时器，延迟处理悬停事件
+        // Create new debounce timer, delay processing hover event
         debounceTimerRef.current = window.setTimeout(() => {
-          // 只在非生产环境中打印日志，使用!== 'production'而不是=== 'development'
+          // Log only in non-production environment, use !== 'production' instead of === 'development'
           if (process.env.NODE_ENV !== 'production') {
-            console.log('鼠标悬停在token关键字上:', cleanToken);
+            console.log('Mouse hovering over token keyword:', cleanToken);
           }
           
-          // 更新最后处理的token引用
+          // Update last processed token reference
           lastHandledTokenRef.current = {token: cleanToken, element: target};
           
-          // 设置当前悬停的token
+          // Set current hovered token
           setCurrentHoveredToken(target);
           
-          // 手动更新按钮位置，确保按钮显示
+          // Manually update button position, to ensure button display
           if (tokenButtonRef.current && hoveredToken) {
             updateButtonPosition(target);
-            tokenButtonRef.current.style.display = 'flex'; // 确保按钮可见
+            tokenButtonRef.current.style.display = 'flex'; // Ensure button visible
           }
-        }, 100); // 增加延迟到100毫秒，降低触发频率
+        }, 100); // Increase delay to 100 milliseconds, reduce trigger frequency
       }
     }
   }, [setCurrentHoveredToken, updateButtonPosition, hoveredToken]);
   
-  // 处理推断的token
+  // Handle inferred token
   const handleInferredToken = useCallback((element: HTMLElement, token: string, tweetId: string) => {
-    // 清理token值，确保没有HTML标签
+    // Clean token value, to ensure no HTML tags
     const cleanToken = token.replace(/<[^>]*>/g, '').trim();
     
-    // 更新最后处理的token引用
+    // Update last processed token reference
     lastHandledTokenRef.current = {token: cleanToken, element};
     
-    // 设置当前悬停的token
+    // Set current hovered token
     setHoveredToken({ token: cleanToken, tweetId });
     setHoverElementRef(element);
     
-    // 高亮当前元素
+    // Highlight current element
     element.classList.add('bg-yellow-200', 'dark:bg-yellow-800/60');
     
-    // 更新按钮位置
+    // Update button position
     updateButtonPosition(element);
     
-    // 确保按钮可见
+    // Ensure button visible
     if (tokenButtonRef.current) {
       tokenButtonRef.current.style.display = 'flex';
     }
   }, [updateButtonPosition]);
 
-  // 处理推文容器内的鼠标离开事件
+  // Handle tweet container mouse leave event
   const handleTweetContainerMouseLeave = useCallback(() => {
-    // 清除防抖计时器
+    // Clear debounce timer
     if (debounceTimerRef.current !== null) {
       window.clearTimeout(debounceTimerRef.current);
       debounceTimerRef.current = null;
     }
     
-    // 重置上次处理的token引用
+    // Reset last processed token reference
     lastHandledTokenRef.current = null;
     
-    // 使用延时操作，避免鼠标从token移动到按钮时触发按钮消失
+    // Use delayed operation, to avoid button disappearing when mouse moves from token to button
     setTimeout(() => {
-      // 检查鼠标是否位于按钮上
+      // Check if mouse is on button
       if (tokenButtonRef.current && document.activeElement !== tokenButtonRef.current) {
-        // 如果没有焦点在按钮上，则隐藏令牌提示
+        // If no focus on button, hide token hint
         if (!hoveredToken) {
           setCurrentHoveredToken(null);
         }
@@ -928,15 +928,15 @@ export function TwitterSidebar({
     }, 50);
   }, [hoveredToken, setCurrentHoveredToken]);
 
-  // 添加对按钮鼠标离开事件的处理
+  // Add handling for button mouse leave event
   const handleButtonMouseLeave = useCallback(() => {
-    // 当鼠标离开按钮时，如果不是点击操作，则在短暂延迟后隐藏按钮
+    // When mouse leaves button, if not click operation, hide button after short delay
     setTimeout(() => {
       if (tokenButtonRef.current && document.activeElement !== tokenButtonRef.current) {
         setHoveredToken(null);
         setHoverElementRef(null);
         
-        // 清除高亮样式
+        // Clear highlight styling
         if (hoverElementRef) {
           hoverElementRef.classList.remove('bg-yellow-200', 'dark:bg-yellow-800/60');
         }
@@ -944,10 +944,10 @@ export function TwitterSidebar({
     }, 100);
   }, [hoverElementRef]);
 
-  // 添加全局点击事件处理
+  // Add global click event handling
   useEffect(() => {
     const handleGlobalClick = (e: MouseEvent) => {
-      // 如果点击位置不是token元素和token按钮，则清除悬停状态
+      // If clicked position is not token element or token button, clear hover state
       const target = e.target as Node;
       if (
         tokenButtonRef.current && 
@@ -958,7 +958,7 @@ export function TwitterSidebar({
         setHoveredToken(null);
         setHoverElementRef(null);
         
-        // 清除高亮样式
+        // Clear highlight styling
         hoverElementRef.classList.remove('bg-yellow-200', 'dark:bg-yellow-800/60');
       }
     };
@@ -970,10 +970,10 @@ export function TwitterSidebar({
     };
   }, [hoverElementRef]);
 
-  // 添加一个effect来清理组件卸载时的计时器
+  // Add an effect to clean up timer when component unmounts
   useEffect(() => {
     return () => {
-      // 组件卸载时清理防抖计时器
+      // Clean up debounce timer when component unmounts
       if (debounceTimerRef.current !== null) {
         window.clearTimeout(debounceTimerRef.current);
         debounceTimerRef.current = null;
@@ -981,13 +981,13 @@ export function TwitterSidebar({
     };
   }, []);
 
-  // 处理搜索表单提交
+  // Handle search form submission
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // 验证搜索关键字不为空
+    // Validate search keyword is not empty
     if (!searchQuery.trim()) {
-      // 如果为空，恢复默认关键字
+      // If empty, restore default keyword
       setSearchQuery('aptos');
       setTimeout(() => fetchTweets(), 0);
       return;
@@ -996,7 +996,7 @@ export function TwitterSidebar({
     fetchTweets();
   };
   
-  // 处理回车键提交
+  // Handle enter key submission
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -1146,7 +1146,7 @@ export function TwitterSidebar({
             )}
           </div>
           
-          {/* Token悬浮按钮 */}
+          {/* Token hover button */}
           {hoveredToken && (
             <button
               ref={tokenButtonRef}
@@ -1158,7 +1158,7 @@ export function TwitterSidebar({
                 boxShadow: '0 2px 10px rgba(0,0,0,0.2)'
               }}
               onMouseEnter={() => {
-                // 当鼠标进入按钮时，保持按钮显示状态
+                // When mouse enters button, keep button display state
                 if (hoverElementRef) {
                   hoverElementRef.classList.add('bg-yellow-200', 'dark:bg-yellow-800/60');
                 }
@@ -1167,17 +1167,17 @@ export function TwitterSidebar({
               onClick={() => {
                 const tweet = tweets.find(t => t.id === hoveredToken.tweetId);
                 if (tweet) {
-                  // 使用token值进行查询
+                  // Use token value for query
                   handleTokenClick(hoveredToken.token);
                 }
               }}
             >
               <Info className="h-4 w-4 mr-1" />
-              Show me the token {stripHtmlTags(hoveredToken.token)} information
+              show me the details about {stripHtmlTags(hoveredToken.token)} token
             </button>
           )}
         </>
-      )}
+      )}  
     </div>
   );
 } 

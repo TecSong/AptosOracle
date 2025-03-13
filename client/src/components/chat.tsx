@@ -181,7 +181,7 @@ export default function Page({ agentId }: { agentId: UUID }) {
         setIsTwitterSidebarOpen(!isTwitterSidebarOpen);
     };
 
-    // 处理来自Twitter侧边栏的消息
+    // Handle message from Twitter sidebar
     const handleTwitterMessage = (message: string) => {
         if (!message.trim()) return;
         
