@@ -194,7 +194,7 @@ export default function Page({ agentId }: { agentId: UUID }) {
     return (
         <div className={cn(
             "flex flex-col w-full h-[calc(100dvh)] p-4",
-            isTwitterSidebarOpen && "pr-80"
+            isTwitterSidebarOpen && "pr-[30rem]"
         )}>
             <div className="flex-1 overflow-y-auto">
                 <ChatMessageList 
