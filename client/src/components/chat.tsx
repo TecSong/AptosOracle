@@ -333,7 +333,7 @@ export default function Page({ agentId }: { agentId: UUID }) {
                                 onChange={(e) => setInput(e.target.value)}
                                 onKeyDown={handleKeyDown}
                                 placeholder="Type a message..."
-                                className="min-h-10"
+                                className="min-h-20 transition-height duration-150 ease-out"
                             />
                         </div>
                         <div className="flex items-center gap-2">

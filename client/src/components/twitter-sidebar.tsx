@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, RefreshCw, Twitter, Info, Search } from 'lucide-react';
+import { ChevronLeft, ChevronRight, RefreshCw, Twitter, Info, Search, Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tweet, fetchTwitterTimeline } from '@/lib/twitter-api';
@@ -295,10 +295,18 @@ export function TwitterSidebar({
                 });
               }
               
-              // Hide full URL, only display display_url, and add link functionality
-              text = text.replace(url.url, `<a href="${url.expanded_url || url.url}" class="text-blue-500 hover:underline">${url.display_url || url.url}</a>`);
+              // 检查是否为Twitter原始短链接(t.co链接)
+              const isTwitterShortUrl = url.url.includes('t.co/');
               
-              // Remove all t.co type URL suffixes (completely remove from text)
+              if (isTwitterShortUrl) {
+                // 完全隐藏Twitter短链接(原始链接)
+                text = text.replace(url.url, '');
+              } else {
+                // 正常处理其他链接：隐藏完整URL，仅显示display_url，并添加链接功能
+                text = text.replace(url.url, `<a href="${url.expanded_url || url.url}" class="text-blue-500 hover:underline">${url.display_url || url.url}</a>`);
+              }
+              
+              // 移除所有t.co类型的URL后缀(完全从文本中删除)
               if (url.display_url && url.display_url.startsWith('t.co/')) {
                 text = text.replace(` https://t.co/${url.display_url.substring(5)}`, '');
                 text = text.replace(` http://t.co/${url.display_url.substring(5)}`, '');
@@ -1096,6 +1104,15 @@ export function TwitterSidebar({
                   return null;
                 }
                 
+                // 检查是否是仅包含视频而没有文本内容的推文
+                const hasText = (tweet.full_text || tweet.text || '').trim().length > 0;
+                const hasVideo = tweet.entities?.media?.some(m => m.type === 'video' || m.type === 'animated_gif');
+                
+                // 如果只有视频没有文本，跳过这条推文
+                if (!hasText && hasVideo) {
+                  return null;
+                }
+                
                 return (
                   <div key={tweet.id} className="mb-4 p-3 border rounded-lg hover:bg-accent/50 transition-colors">
                     <div className="flex items-start gap-2 mb-2">
@@ -1116,6 +1133,31 @@ export function TwitterSidebar({
                           )}
                         </div>
                         <p className="text-xs text-muted-foreground">@{tweet.user.screen_name}</p>
+                      </div>
+                      
+                      {/* 添加推文发送到对话框的按钮 */}
+                      <div className="ml-auto">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (onSendToChat && (tweet.full_text || tweet.text)) {
+                              const tweetText = tweet.full_text || tweet.text || '';
+                              // Remove empty lines and normalize whitespace
+                              const cleanedText = tweetText
+                                .split('\n')
+                                .filter(line => line.trim() !== '')
+                                .join('\n')
+                                .trim();
+                              onSendToChat(`Help me to analyze this tweet: \`\`\`${cleanedText}\`\`\``);
+                            }
+                          }}
+                          aria-label="analyze this tweet"
+                        >
+                          <Send className="h-3.5 w-3.5" />
+                        </Button>
                       </div>
                     </div>
                     
