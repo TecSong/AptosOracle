@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tweet, fetchTwitterTimeline } from '@/lib/twitter-api';
 import { Input } from '@/components/ui/input';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 // 定义平台类型
 type Platform = 'x' | 'farcaster';
