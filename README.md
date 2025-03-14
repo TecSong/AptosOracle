@@ -14,14 +14,16 @@
 - 🤖 One-click on-chain execution
 - 📊 Multi-dimensional token valuation
 - 🧠 AI-powered sentiment analysis
-- ⚖️ Bullish/Bearish tweet classification
+- ⚖️ Bullish/Bearish post classification
 
 
-![Demo Screenshot](./docs/static/img/demo-screenshot.png)
+![Demo Screenshot](./docs/static/img/demo1.png)
+![Demo Screenshot](./docs/static/img/demo2.png)
+
 
 ## 🔥 Core Features
 
-### Real-Time Alpha Tweet Analysis
+### Real-Time Alpha Posts Analysis
 
 
 ### AI-Powered Sentiment Analysis
@@ -36,9 +38,8 @@
 
 ### Real-Time Impact Assessment
 ```
-# Evaluate tweet impact on token price
-/evaluate-impact --tweet-id 12345 --token APT
-```
+# Evaluate post impact on token price
+
 ```text
 ⚖️ Impact Assessment:
 - Predicted Price Impact: +8.5% (1h)
