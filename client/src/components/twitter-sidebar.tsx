@@ -5,6 +5,10 @@ import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tweet, fetchTwitterTimeline } from '@/lib/twitter-api';
 import { Input } from '@/components/ui/input';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+
+// 定义平台类型
+type Platform = 'x' | 'farcaster';
 
 interface TwitterSidebarProps {
   query?: string;
@@ -28,6 +32,8 @@ export function TwitterSidebar({
   const tweetContainerRef = useRef<HTMLDivElement>(null);
   const [searchQuery, setSearchQuery] = useState(query);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  // 新增选中平台状态
+  const [selectedPlatform, setSelectedPlatform] = useState<Platform>('x');
 
   // Use useRef to create a cache for the last processed token, to track currently processed tokens
   const lastHandledTokenRef = useRef<{token: string, element: HTMLElement} | null>(null);
@@ -1020,7 +1026,7 @@ export function TwitterSidebar({
       <div className="flex items-center justify-between p-4 border-b">
         <div className={cn("flex items-center gap-2", !isOpen && "hidden")}>
           <Twitter className="h-5 w-5 text-blue-400" />
-          <h2 className="font-semibold">Find your alpha Tweets</h2>
+          <h2 className="font-semibold">Find your alpha Posts</h2>
         </div>
         <Button 
           variant="ghost" 
@@ -1034,159 +1040,189 @@ export function TwitterSidebar({
       
       {isOpen && (
         <>
-          <div className="flex items-center px-4 py-2 border-b">
-            <form onSubmit={handleSearch} className="flex items-center w-full gap-1">
-              <div className="relative flex-1">
-                <Input
-                  ref={searchInputRef}
-                  type="text"
-                  placeholder="Search tweets (e.g. aptos)"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  className="pr-8 text-sm h-8"
-                  aria-label="Search keywords"
-                />
-              </div>
-              <Button 
-                type="submit"
-                variant="ghost" 
-                size="icon"
-                disabled={isLoading}
-                aria-label="Search tweets"
-                className="h-8 w-8"
-              >
-                <Search className="h-4 w-4" />
-              </Button>
-              <Button 
-                type="button"
-                variant="ghost" 
-                size="icon" 
-                onClick={fetchTweets} 
-                disabled={isLoading}
-                aria-label="Refresh tweets"
-                className="h-8 w-8"
-              >
-                <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
-              </Button>
-            </form>
+          {/* 添加平台选择标签页 */}
+          <div className="px-4 py-2 border-b">
+            <Tabs defaultValue="x" value={selectedPlatform} onValueChange={(value) => setSelectedPlatform(value as Platform)}>
+              <TabsList className="w-full mb-2">
+                <TabsTrigger value="x" className="flex-1">X</TabsTrigger>
+                <TabsTrigger value="farcaster" className="flex-1">Farcaster</TabsTrigger>
+              </TabsList>
+            </Tabs>
           </div>
           
-          <div 
-            ref={tweetContainerRef}
-            className="flex-1 overflow-y-auto p-2"
-            onMouseOver={handleTweetContainerMouseEvent}
-            onMouseLeave={handleTweetContainerMouseLeave}
-          >
-            {isLoading ? (
-              Array(5).fill(0).map((_, i) => (
-                <div key={i} className="mb-4 p-3 border rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Skeleton className="h-10 w-10 rounded-full" />
-                    <div className="space-y-1">
-                      <Skeleton className="h-4 w-24" />
-                      <Skeleton className="h-3 w-16" />
+          {/* 搜索框 - 仅在X平台显示 */}
+          {selectedPlatform === 'x' && (
+            <div className="flex items-center px-4 py-2 border-b">
+              <form onSubmit={handleSearch} className="flex items-center w-full gap-1">
+                <div className="relative flex-1">
+                  <Input
+                    ref={searchInputRef}
+                    type="text"
+                    placeholder="Search tweets (e.g. aptos)"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    className="pr-8 text-sm h-8"
+                    aria-label="Search keywords"
+                  />
+                </div>
+                <Button 
+                  type="submit"
+                  variant="ghost" 
+                  size="icon"
+                  disabled={isLoading}
+                  aria-label="Search tweets"
+                  className="h-8 w-8"
+                >
+                  <Search className="h-4 w-4" />
+                </Button>
+                <Button 
+                  type="button"
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={fetchTweets} 
+                  disabled={isLoading}
+                  aria-label="Refresh tweets"
+                  className="h-8 w-8"
+                >
+                  <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+                </Button>
+              </form>
+            </div>
+          )}
+          
+          {/* 内容区域 - 根据平台显示不同内容 */}
+          {selectedPlatform === 'x' ? (
+            <div 
+              ref={tweetContainerRef}
+              className="flex-1 overflow-y-auto p-2"
+              onMouseOver={handleTweetContainerMouseEvent}
+              onMouseLeave={handleTweetContainerMouseLeave}
+            >
+              {isLoading ? (
+                // 加载骨架屏
+                Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="mb-4 p-3 border rounded-lg">
+                    <div className="flex items-start gap-2 mb-2">
+                      <Skeleton className="h-10 w-10 rounded-full" />
+                      <div className="flex-1">
+                        <Skeleton className="h-4 w-24 mb-2" />
+                        <Skeleton className="h-3 w-16" />
+                      </div>
+                    </div>
+                    <Skeleton className="h-16 w-full mb-2" />
+                    <div className="flex gap-2">
+                      <Skeleton className="h-3 w-12" />
+                      <Skeleton className="h-3 w-12" />
                     </div>
                   </div>
-                  <Skeleton className="h-4 w-full mb-1" />
-                  <Skeleton className="h-4 w-5/6 mb-1" />
-                  <Skeleton className="h-4 w-4/6" />
-                </div>
-              ))
-            ) : error ? (
-              <div className="p-4 text-center text-red-500">{error}</div>
-            ) : tweets.length === 0 ? (
-              <div className="p-4 text-center text-muted-foreground">No tweets found</div>
-            ) : (
-              tweets.map(tweet => {
-                if (!tweet || !tweet.id || !tweet.user) {
-                  console.error('Invalid tweet object:', tweet);
-                  return null;
-                }
-                
-                // 检查是否是仅包含视频而没有文本内容的推文
-                const hasText = (tweet.full_text || tweet.text || '').trim().length > 0;
-                const hasVideo = tweet.entities?.media?.some(m => m.type === 'video' || m.type === 'animated_gif');
-                
-                // 如果只有视频没有文本，跳过这条推文
-                if (!hasText && hasVideo) {
-                  return null;
-                }
-                
-                return (
-                  <div key={tweet.id} className="mb-4 p-3 border rounded-lg hover:bg-accent/50 transition-colors">
-                    <div className="flex items-start gap-2 mb-2">
-                      {tweet.user.profile_image_url ? (
-                        <img 
-                          src={tweet.user.profile_image_url} 
-                          alt={tweet.user.name} 
-                          className="h-10 w-10 rounded-full"
-                        />
-                      ) : (
-                        <div className="h-10 w-10 rounded-full bg-muted"></div>
-                      )}
-                      <div>
-                        <div className="flex items-center">
-                          <p className="font-semibold text-sm">{tweet.user.name}</p>
-                          {tweet.user.verified && (
-                            <span className="ml-1 text-blue-500 text-xs">✓</span>
-                          )}
+                ))
+              ) : error ? (
+                <div className="p-4 text-center text-red-500">{error}</div>
+              ) : tweets.length === 0 ? (
+                <div className="p-4 text-center text-muted-foreground">No tweets found</div>
+              ) : (
+                tweets.map(tweet => {
+                  if (!tweet || !tweet.id || !tweet.user) {
+                    console.error('Invalid tweet object:', tweet);
+                    return null;
+                  }
+                  
+                  // 检查是否是仅包含视频而没有文本内容的推文
+                  const hasText = (tweet.full_text || tweet.text || '').trim().length > 0;
+                  const hasVideo = tweet.entities?.media?.some(m => m.type === 'video' || m.type === 'animated_gif');
+                  
+                  // 如果只有视频没有文本，跳过这条推文
+                  if (!hasText && hasVideo) {
+                    return null;
+                  }
+                  
+                  return (
+                    <div key={tweet.id} className="mb-4 p-3 border rounded-lg hover:bg-accent/50 transition-colors">
+                      <div className="flex items-start gap-2 mb-2">
+                        {tweet.user.profile_image_url ? (
+                          <img 
+                            src={tweet.user.profile_image_url} 
+                            alt={tweet.user.name} 
+                            className="h-10 w-10 rounded-full"
+                          />
+                        ) : (
+                          <div className="h-10 w-10 rounded-full bg-muted"></div>
+                        )}
+                        <div>
+                          <div className="flex items-center">
+                            <p className="font-semibold text-sm">{tweet.user.name}</p>
+                            {tweet.user.verified && (
+                              <span className="ml-1 text-blue-500 text-xs">✓</span>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground">@{tweet.user.screen_name}</p>
                         </div>
-                        <p className="text-xs text-muted-foreground">@{tweet.user.screen_name}</p>
+                        
+                        {/* 添加推文发送到对话框的按钮 */}
+                        <div className="ml-auto">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (onSendToChat && (tweet.full_text || tweet.text)) {
+                                const tweetText = tweet.full_text || tweet.text || '';
+                                // Remove empty lines and normalize whitespace
+                                const cleanedText = tweetText
+                                  .split('\n')
+                                  .filter(line => line.trim() !== '')
+                                  .join('\n')
+                                  .trim();
+                                onSendToChat(`Help me to analyze this tweet: \`\`\`${cleanedText}\`\`\``);
+                              }
+                            }}
+                            aria-label="analyze this tweet"
+                          >
+                            <Send className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                       </div>
                       
-                      {/* 添加推文发送到对话框的按钮 */}
-                      <div className="ml-auto">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 w-7 p-0"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (onSendToChat && (tweet.full_text || tweet.text)) {
-                              const tweetText = tweet.full_text || tweet.text || '';
-                              // Remove empty lines and normalize whitespace
-                              const cleanedText = tweetText
-                                .split('\n')
-                                .filter(line => line.trim() !== '')
-                                .join('\n')
-                                .trim();
-                              onSendToChat(`Help me to analyze this tweet: \`\`\`${cleanedText}\`\`\``);
-                            }
-                          }}
-                          aria-label="analyze this tweet"
-                        >
-                          <Send className="h-3.5 w-3.5" />
-                        </Button>
+                      {tweet.full_text || tweet.text ? (
+                        <div 
+                          className="text-sm mb-2"
+                          dangerouslySetInnerHTML={{ __html: formatTweetText(tweet) }}
+                        />
+                      ) : (
+                        <div className="text-sm mb-2 text-muted-foreground">[No tweet content]</div>
+                      )}
+                      
+                      {renderMedia(tweet)}
+                      {renderQuotedTweet(tweet)}
+                      
+                      <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                        <span>{formatDate(tweet.created_at)}</span>
+                        {tweet.retweet_count !== undefined && (
+                          <span>Retweets: {tweet.retweet_count}</span>
+                        )}
+                        {tweet.favorite_count !== undefined && (
+                          <span>Likes: {tweet.favorite_count}</span>
+                        )}
                       </div>
                     </div>
-                    
-                    {tweet.full_text || tweet.text ? (
-                      <div 
-                        className="text-sm mb-2"
-                        dangerouslySetInnerHTML={{ __html: formatTweetText(tweet) }}
-                      />
-                    ) : (
-                      <div className="text-sm mb-2 text-muted-foreground">[No tweet content]</div>
-                    )}
-                    
-                    {renderMedia(tweet)}
-                    {renderQuotedTweet(tweet)}
-                    
-                    <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                      <span>{formatDate(tweet.created_at)}</span>
-                      {tweet.retweet_count !== undefined && (
-                        <span>Retweets: {tweet.retweet_count}</span>
-                      )}
-                      {tweet.favorite_count !== undefined && (
-                        <span>Likes: {tweet.favorite_count}</span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
+                  );
+                })
+              )}
+            </div>
+          ) : (
+            // Farcaster平台内容 - 显示即将推出的提示
+            <div className="flex-1 flex items-center justify-center p-8">
+              <div className="text-center">
+                <h3 className="text-xl font-bold mb-2">Coming Soon</h3>
+                <p className="text-muted-foreground">
+                  Farcaster integration is under development.<br/>
+                  Stay tuned for updates!
+                </p>
+              </div>
+            </div>
+          )}
           
           {/* Token hover button */}
           {hoveredToken && (
@@ -1215,7 +1251,7 @@ export function TwitterSidebar({
               }}
             >
               <Info className="h-4 w-4 mr-1" />
-              show me the details about {stripHtmlTags(hoveredToken.token)} token
+              More
             </button>
           )}
         </>

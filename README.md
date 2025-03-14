@@ -1,13 +1,13 @@
-# AptosAlphaAgent 🔍🚀
+# AptosOracle 🔍🚀
 
 <div align="center">
   <img src="./docs/static/img/aptos_alpha_banner.png" alt="AptosAlpha Banner" width="100%" />
-  <p><em>(AI Agent analyzing Twitter trends and executing on-chain transactions)</em></p>
+  <p><em>(AI Agent searching and analyzing alpha posts on social platform and executing on-chain transactions)</em></p>
 </div>
 
 ## 🌟 Core Features Highlights
 
-**AI-Powered Social Finance Intelligence Engine** - Real-time analysis of APTOS ecosystem alpha tweets on Twitter/X with:
+**AI-Powered Social Finance Intelligence Engine** - Real-time analysis of alpha posts on X/farcaster with:
 
 - 🚨 Real-time market pulse monitoring
 - 💎 Early-stage alpha opportunity detection
@@ -15,6 +15,117 @@
 - 📊 Multi-dimensional token valuation
 - 🧠 AI-powered sentiment analysis
 - ⚖️ Bullish/Bearish tweet classification
+
+
+![Demo Screenshot](./docs/static/img/demo-screenshot.png)
+
+## 🔥 Core Features
+
+### Real-Time Alpha Tweet Analysis
+
+
+### AI-Powered Sentiment Analysis
+
+```text
+📈 Sentiment Analysis Result:
+- Bullish Probability: 92%
+- Bearish Probability: 8%
+- Confidence Score: 0.89
+- Key Factors: "partnership", "announcement"
+- Historical Accuracy: 86% on similar phrases
+
+### Real-Time Impact Assessment
+```
+# Evaluate tweet impact on token price
+/evaluate-impact --tweet-id 12345 --token APT
+```
+```text
+⚖️ Impact Assessment:
+- Predicted Price Impact: +8.5% (1h)
+- Credibility Score: 94/100
+- Author Influence: Tier 1 (500K+ followers)
+- Historical Accuracy: 83%
+- Market Correlation: 0.92
+
+### Intelligent Token Insights
+
+```text
+🍰 CAKE Deep Dive:
+- Price Trend: $3.45 (+8.2% 24h)
+- Social Heat: Tweets ↑30%, "yield farming" mentions ↑40%
+- On-chain: Large transfers increasing (>10K CAKE)
+- Risk Assessment: Medium volatility, healthy holder distribution
+- Sentiment Trend: Bullish (83% ↑12% weekly)
+
+## 🔥 More Features
+
+### Farcaster Alpha Casts
+```
+/find-alpha --platform farcaster --topics defi,nft,zkp
+```
+```text
+🔍 Farcaster Alpha Analysis:
+- 5 trending DeFi alpha casts from verified accounts
+- 3 high-engagement ZKP innovation discussions
+- Top influencers mentioning Aptos ecosystem: @0xJohn, @cryptobuilder
+- Topic correlation: DeFi mentions increased 40% with APT price movement
+- Cast sentiment: 85% positive, 12% neutral, 3% negative
+```
+
+### Personalized Alpha Recommendations
+```
+/recommend-alpha --based-on-history
+```
+```text
+🎯 Personalized Recommendations:
+- Trending: "APT staking solutions gaining traction" (93% relevance)
+- Similar to your interests: New Move language deployment framework
+- Based on your portfolio: 3 undervalued tokens with recent developer activity
+- Community signals: Governance proposals you should track
+- Whale watching: Key wallet movements related to your holdings
+```
+
+### Seamless Token Swap Experience
+```
+/swap APT USDC --amount 10
+```
+```text
+💱 Token Swap Details:
+- Swapping: 10 APT ➝ ~82.5 USDC
+- Best route: APT → USDC (Liquidswap)
+- Gas estimate: 0.002 APT
+- Slippage: 0.3%
+- Historical timing: Favorable (price up 2.4% vs 24h avg)
+- One-click execution or schedule for target price
+- Transaction confirmed: 0x742a...3d7f
+```
+
+### AI-Powered Market Sentiment Labeling
+```
+/label-sentiment --post-id 5432 --auto-batch
+```
+```text
+🏷️ Sentiment Labeling Results:
+- Analyzed: 25 recent posts (14 Twitter, 11 Farcaster)
+- Bullish posts: 18 (72%) with avg. confidence 0.91
+- Bearish posts: 5 (20%) with avg. confidence 0.87
+- Neutral posts: 2 (8%) with avg. confidence 0.79
+- Top bullish signals: "partnership", "mainnet launch", "institutional adoption"
+- Top bearish signals: "delay announcement", "regulatory concerns"
+- Sentiment trend: +15% more bullish than previous 24h
+- Actionable insight: Strong positive shift detected for $APT ecosystem
+```
+
+## 🧠 Technical Architecture
+
+- [ ] coming soom
+
+### TODO List
+- [ ] Integrate social login and create built-in wallet.
+- [ ] Design user-friendly interface with React Native and Expo.
+- [ ] Develop advanced analytics for sentiment analysis and trend prediction.
+- [ ] Ensure data encryption for sensitive information.
+
 
 ## 🚀  Quick Start
 
@@ -43,88 +154,3 @@ pnpm start --character ./characters/aptosOracle.character.json
 pnpm start:client
 ```
 > Visit `http://localhost:3000` to begin
-
-![Demo Screenshot](./docs/static/img/demo-screenshot.png)
-
-## 🔥 Core Features
-
-### Real-Time Alpha Tweet Analysis
-```bash
-# Example: Monitor APT-related tweets
-/analyze-tweets --token APT --timeframe 1h
-```
-
-### AI-Powered Sentiment Analysis
-```bash
-# Analyze tweet sentiment for specific token
-/analyze-sentiment --token APT --tweet "Big partnership announcement coming soon!"
-```
-```text
-📈 Sentiment Analysis Result:
-- Bullish Probability: 92%
-- Bearish Probability: 8%
-- Confidence Score: 0.89
-- Key Factors: "partnership", "announcement"
-- Historical Accuracy: 86% on similar phrases
-
-### Real-Time Impact Assessment
-```bash
-# Evaluate tweet impact on token price
-/evaluate-impact --tweet-id 12345 --token APT
-```
-```text
-⚖️ Impact Assessment:
-- Predicted Price Impact: +8.5% (1h)
-- Credibility Score: 94/100
-- Author Influence: Tier 1 (500K+ followers)
-- Historical Accuracy: 83%
-- Market Correlation: 0.92
-
-### Intelligent Token Insights
-```bash
-/show token-details CAKE --social --market
-```
-```text
-🍰 CAKE Deep Dive:
-- Price Trend: $3.45 (+8.2% 24h)
-- Social Heat: Tweets ↑30%, "yield farming" mentions ↑40%
-- On-chain: Large transfers increasing (>10K CAKE)
-- Risk Assessment: Medium volatility, healthy holder distribution
-- Sentiment Trend: Bullish (83% ↑12% weekly)
-
-## 🧠 Technical Architecture
-
-```mermaid
-graph TD
-    A[Twitter/X Stream] --> B(Real-time NLP Analysis)
-    B --> C{Sentiment Scoring}
-    C -->|Bullish| D[Alpha Signal Generation]
-    C -->|Bearish| E[Risk Alert System]
-    D --> F[APTOS Execution Engine]
-    E --> F
-    F --> G[Performance Feedback Loop]
-    G --> B
-```
-
-// Advanced sentiment analysis implementation
-class AdvancedSentimentAnalyzer {
-  async analyze(tweet: string): Promise<SentimentResult> {
-    // Using ensemble model combining:
-    // 1. FinBERT (Financial domain-specific BERT)
-    // 2. Custom APTOS ecosystem model
-    // 3. Market context analyzer
-    const results = await Promise.all([
-      this.finbertModel.predict(tweet),
-      this.aptosModel.predict(tweet),
-      this.marketContextAnalyzer.predict(tweet)
-    ]);
-    
-    return this.ensembleVoting(results);
-  }
-
-  private ensembleVoting(results: Prediction[]): SentimentResult {
-    // Implement weighted voting system based on model performance
-    // Includes temporal relevance scoring
-  }
-}
-```

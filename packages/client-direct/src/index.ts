@@ -111,7 +111,7 @@ Response format should be formatted in a JSON block like this:
 
 export class DirectClient {
     public app: express.Application;
-    private agents: Map<string, IAgentRuntime>; // container management
+    private agents: Map<string, AgentRuntime>; // 修改为AgentRuntime类型
     private server: any; // Store server instance
     public startAgent: Function; // Store startAgent functor
     public loadCharacterTryPath: Function; // Store loadCharacterTryPath functor
@@ -983,13 +983,13 @@ export class DirectClient {
     }
 
     // agent/src/index.ts:startAgent calls this
-    public registerAgent(runtime: IAgentRuntime) {
+    public registerAgent(runtime: AgentRuntime) {
         // register any plugin endpoints?
         // but once and only once
         this.agents.set(runtime.agentId, runtime);
     }
 
-    public unregisterAgent(runtime: IAgentRuntime) {
+    public unregisterAgent(runtime: AgentRuntime) {
         this.agents.delete(runtime.agentId);
     }
 
@@ -1034,14 +1034,14 @@ export class DirectClient {
 export const DirectClientInterface: Client = {
     name: 'direct',
     config: {},
-    start: async (_runtime: IAgentRuntime) => {
+    start: async (_runtime: AgentRuntime) => {
         elizaLogger.log("DirectClientInterface start");
         const client = new DirectClient();
         const serverPort = Number.parseInt(settings.SERVER_PORT || "3000");
         client.start(serverPort);
         return client;
     },
-    // stop: async (_runtime: IAgentRuntime, client?: Client) => {
+    // stop: async (_runtime: AgentRuntime, client?: Client) => {
     //     if (client instanceof DirectClient) {
     //         client.stop();
     //     }
