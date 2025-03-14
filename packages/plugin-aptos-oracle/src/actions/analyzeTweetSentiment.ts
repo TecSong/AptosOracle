@@ -202,12 +202,13 @@ No explanations. No markdown. No extra text.`;
             sentiment: (result.sentiment === 'bullish' || result.sentiment === 'bearish' || result.sentiment === 'neutral') 
                 ? result.sentiment 
                 : 'neutral',
-            score: typeof result.score === 'number' ? 
-                Math.max(-10, Math.min(10, result.score)) : // Clamp score between -10 and 10
+            score: result.score !== undefined ? 
+                Math.max(-10, Math.min(10, Number(result.score))) : // Ensure conversion to number and clamp between -10 and 10
                 0,
             reasoning: String(result.reasoning || 'No reasoning provided')
         };
         
+        elizaLogger.info("Analyzing sentiment result:", validatedResult);
         return validatedResult;
     } catch (error) {
         elizaLogger.error("Error parsing sentiment analysis result:", error);
