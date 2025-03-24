@@ -74,9 +74,7 @@
 ```
 
 ### Personalized Alpha Recommendations
-```
-/recommend-alpha --based-on-history
-```
+
 ```text
 🎯 Personalized Recommendations:
 - Trending: "APT staking solutions gaining traction" (93% relevance)
@@ -86,25 +84,8 @@
 - Whale watching: Key wallet movements related to your holdings
 ```
 
-### Seamless Token Swap Experience
-```
-/swap APT USDC --amount 10
-```
-```text
-💱 Token Swap Details:
-- Swapping: 10 APT ➝ ~82.5 USDC
-- Best route: APT → USDC (Liquidswap)
-- Gas estimate: 0.002 APT
-- Slippage: 0.3%
-- Historical timing: Favorable (price up 2.4% vs 24h avg)
-- One-click execution or schedule for target price
-- Transaction confirmed: 0x742a...3d7f
-```
-
 ### AI-Powered Market Sentiment Labeling
-```
-/label-sentiment --post-id 5432 --auto-batch
-```
+
 ```text
 🏷️ Sentiment Labeling Results:
 - Analyzed: 25 recent posts (14 Twitter, 11 Farcaster)
@@ -117,10 +98,29 @@
 - Actionable insight: Strong positive shift detected for $APT ecosystem
 ```
 
+### Seamless Token Swap Experience
+
+```text
+💱 Token Swap Details:
+- Swapping: 10 APT ➝ ~82.5 USDC
+- Best route: APT → USDC (Liquidswap)
+- Gas estimate: 0.002 APT
+- Slippage: 0.3%
+- Historical timing: Favorable (price up 2.4% vs 24h avg)
+- One-click execution or schedule for target price
+- Transaction confirmed: 0x742a...3d7f
+```
+
 ## 🧠 Technical Architecture
 
 ```mermaid
 flowchart TB
+    subgraph "Future Plans"
+        SocialLogin[Social Login Integration]
+        WalletCreation[Built-in Wallet Creation]
+        AdvancedAnalytics[Advanced Analytics Tools]
+        EnhancedEncryption[Enhanced Data Encryption]
+    end
     subgraph "UI Layer" 
         UI[Frontend Application\nReact Native + Expo]
         WebServer
@@ -129,7 +129,7 @@ flowchart TB
         AlphaAnalysis[Real-time Alpha Post Analysis]
         SentimentAnalysis[Sentiment Analysis]
         ImpactAssessment[Impact Assessment]
-        TokenInsights[Smart Token Insights]
+        TokenInsights[Token Insights]
         PersonalRec[Personalized Recommendations]
         TokenExchange[Token Exchange]
         MarketSentiment[Market Sentiment Tagging]
@@ -141,19 +141,14 @@ flowchart TB
     subgraph "Execution Layer"
         ExecutionEngine[Execution Engine]
     end
-    subgraph "Future Plans"
-        SocialLogin[Social Login Integration]
-        WalletCreation[Built-in Wallet Creation]
-        AdvancedAnalytics[Advanced Analytics Tools]
-        EnhancedEncryption[Enhanced Data Encryption]
-    end
+    
     %% UI Layer to Core Functionality Layer connections
-    UI --> AlphaAnalysis
     UI --> SentimentAnalysis
-    UI --> ImpactAssessment
+    UI --> AlphaAnalysis
     UI --> TokenInsights
-    UI --> PersonalRec
     UI --> TokenExchange
+    UI --> PersonalRec
+    UI --> ImpactAssessment
     WebServer --> UI
     %% Core Functionality Layer to Data Processing Layer connections
     AlphaAnalysis --> DataProcessing
