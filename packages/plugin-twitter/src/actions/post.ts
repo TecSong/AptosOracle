@@ -8,8 +8,9 @@ import {
     ModelClass,
     generateObject,
     truncateToCompleteSentence,
+    HandlerCallback,
 } from "@elizaos/core";
-import { Scraper } from "agent-twitter-client";
+import { TwitterApi } from "twitter-api-v2";
 import { tweetTemplate } from "../templates";
 import { isTweetContent, TweetSchema } from "../types";
 
@@ -30,7 +31,7 @@ async function composeTweet(
             runtime,
             context,
             modelClass: ModelClass.SMALL,
-            schema: TweetSchema,
+            schema: TweetSchema as any, // Type assertion to fix linter error
             stop: ["\n"],
         });
 
@@ -60,28 +61,23 @@ async function composeTweet(
     }
 }
 
-async function sendTweet(twitterClient: Scraper, content: string) {
-    const result = await twitterClient.sendTweet(content);
+async function sendTweet(twitterClient: TwitterApi, content: string): Promise<boolean> {
+    try {
+        // Post the tweet using the v2 API
+        const result = await twitterClient.v2.tweet(content);
+        elizaLogger.log("Tweet response:", result);
 
-    const body = await result.json();
-    elizaLogger.log("Tweet response:", body);
-
-    // Check for Twitter API errors
-    if (body.errors) {
-        const error = body.errors[0];
-        elizaLogger.error(
-            `Twitter API error (${error.code}): ${error.message}`
-        );
+        // Check if the tweet was successfully posted
+        if (!result?.data?.id) {
+            elizaLogger.error("Failed to post tweet: No tweet result in response");
+            return false;
+        }
+        
+        return true;
+    } catch (error) {
+        elizaLogger.error(`Twitter API error: ${error.message}`);
         return false;
     }
-
-    // Check for successful tweet creation
-    if (!body?.data?.create_tweet?.tweet_results?.result) {
-        elizaLogger.error("Failed to post tweet: No tweet result in response");
-        return false;
-    }
-
-    return true;
 }
 
 async function postTweet(
@@ -89,25 +85,54 @@ async function postTweet(
     content: string
 ): Promise<boolean> {
     try {
-        const twitterClient = runtime.clients.twitter?.client?.twitterClient;
-        const scraper = twitterClient || new Scraper();
-
+        // Try to find existing Twitter client in the runtime
+        let twitterClient: TwitterApi = null;
+        
+        // Attempt to access Twitter client based on conventions
+        // We need to use type assertion since the exact structure may vary
+        const clientsWithTwitter = runtime.clients.filter(client => {
+            return client && typeof client === 'object' && (
+                // Check for possible properties that might contain the Twitter client
+                (client as any).twitter instanceof TwitterApi ||
+                (client as any).twitterClient instanceof TwitterApi ||
+                (client as any).client instanceof TwitterApi
+            );
+        });
+        
+        if (clientsWithTwitter.length > 0) {
+            // Extract the Twitter client from the first matching client
+            const clientObj = clientsWithTwitter[0] as any;
+            twitterClient = clientObj.twitter || clientObj.twitterClient || clientObj.client;
+        }
+        
         if (!twitterClient) {
-            const username = runtime.getSetting("TWITTER_USERNAME");
-            const password = runtime.getSetting("TWITTER_PASSWORD");
-            const email = runtime.getSetting("TWITTER_EMAIL");
-            const twitter2faSecret = runtime.getSetting("TWITTER_2FA_SECRET");
+            // Get Twitter API credentials from settings
+            const apiKey = runtime.getSetting("TWITTER_API_KEY");
+            const apiKeySecret = runtime.getSetting("TWITTER_API_KEY_SECRET");
+            const accessToken = runtime.getSetting("TWITTER_ACCESS_TOKEN");
+            const accessTokenSecret = runtime.getSetting("TWITTER_ACCESS_TOKEN_SECRET");
 
-            if (!username || !password) {
+            if (!apiKey || !apiKeySecret || !accessToken || !accessTokenSecret) {
                 elizaLogger.error(
-                    "Twitter credentials not configured in environment"
+                    "Twitter API credentials not configured in environment"
                 );
                 return false;
             }
-            // Login with credentials
-            await scraper.login(username, password, email, twitter2faSecret);
-            if (!(await scraper.isLoggedIn())) {
-                elizaLogger.error("Failed to login to Twitter");
+            
+            // Create new Twitter client
+            twitterClient = new TwitterApi({
+                appKey: apiKey,
+                appSecret: apiKeySecret,
+                accessToken: accessToken,
+                accessSecret: accessTokenSecret,
+            });
+            
+            // Verify credentials
+            try {
+                await twitterClient.v2.me();
+                elizaLogger.log("Successfully authenticated with Twitter API");
+            } catch (error) {
+                elizaLogger.error("Failed to authenticate with Twitter API:", error);
                 return false;
             }
         }
@@ -117,16 +142,32 @@ async function postTweet(
 
         try {
             if (content.length > DEFAULT_MAX_TWEET_LENGTH) {
-                const noteTweetResult = await scraper.sendNoteTweet(content);
-                if (noteTweetResult.errors && noteTweetResult.errors.length > 0) {
-                    // Note Tweet failed due to authorization. Falling back to standard Tweet.
-                    return await sendTweet(scraper, content);
+                // For long tweets, we'll need to use the v2 API to post a thread
+                // or split the content into multiple tweets
+                const chunks = splitIntoTweets(content, DEFAULT_MAX_TWEET_LENGTH);
+                let lastTweetId: string = null;
+                
+                // Create a thread by posting tweets in reply to the previous one
+                for (const chunk of chunks) {
+                    const tweetOptions = lastTweetId ? 
+                        { reply: { in_reply_to_tweet_id: lastTweetId } } : 
+                        undefined;
+                    
+                    const result = await twitterClient.v2.tweet(chunk, tweetOptions);
+                    if (!result?.data?.id) {
+                        elizaLogger.error("Failed to post tweet chunk");
+                        return false;
+                    }
+                    
+                    lastTweetId = result.data.id;
                 }
+                
                 return true;
             }
-            return await sendTweet(scraper, content);
+            
+            return await sendTweet(twitterClient, content);
         } catch (error) {
-            throw new Error(`Note Tweet failed: ${error}`);
+            throw new Error(`Tweet failed: ${error}`);
         }
     } catch (error) {
         // Log the full error details
@@ -140,6 +181,49 @@ async function postTweet(
     }
 }
 
+// Helper function to split long content into tweet-sized chunks
+function splitIntoTweets(content: string, maxLength: number): string[] {
+    const tweets: string[] = [];
+    let remainingContent = content;
+    
+    while (remainingContent.length > 0) {
+        let chunk: string;
+        
+        if (remainingContent.length <= maxLength) {
+            chunk = remainingContent;
+            remainingContent = '';
+        } else {
+            // Find a good breaking point (end of sentence, end of word, etc.)
+            let breakPoint = maxLength;
+            
+            // Try to find the end of a sentence within the limit
+            const lastPeriod = remainingContent.lastIndexOf('.', maxLength);
+            const lastQuestion = remainingContent.lastIndexOf('?', maxLength);
+            const lastExclamation = remainingContent.lastIndexOf('!', maxLength);
+            
+            const sentenceEnd = Math.max(lastPeriod, lastQuestion, lastExclamation);
+            
+            if (sentenceEnd > maxLength * 0.5) {
+                // We found a sentence end within reasonable bounds
+                breakPoint = sentenceEnd + 1;
+            } else {
+                // Try to find the end of a word
+                const lastSpace = remainingContent.lastIndexOf(' ', maxLength);
+                if (lastSpace > 0) {
+                    breakPoint = lastSpace;
+                }
+            }
+            
+            chunk = remainingContent.substring(0, breakPoint).trim();
+            remainingContent = remainingContent.substring(breakPoint).trim();
+        }
+        
+        tweets.push(chunk);
+    }
+    
+    return tweets;
+}
+
 export const postAction: Action = {
     name: "POST_TWEET",
     similes: ["TWEET", "POST", "SEND_TWEET"],
@@ -151,18 +235,21 @@ export const postAction: Action = {
 // eslint-disable-next-line
         _state?: State
     ) => {
-        const username = runtime.getSetting("TWITTER_USERNAME");
-        const password = runtime.getSetting("TWITTER_PASSWORD");
-        const email = runtime.getSetting("TWITTER_EMAIL");
-        const hasCredentials = !!username && !!password && !!email;
-        elizaLogger.log(`Has credentials: ${hasCredentials}`);
+        const apiKey = runtime.getSetting("TWITTER_API_KEY");
+        const apiKeySecret = runtime.getSetting("TWITTER_API_KEY_SECRET");
+        const accessToken = runtime.getSetting("TWITTER_ACCESS_TOKEN");
+        const accessTokenSecret = runtime.getSetting("TWITTER_ACCESS_TOKEN_SECRET");
+        
+        const hasCredentials = !!apiKey && !!apiKeySecret && !!accessToken && !!accessTokenSecret;
+        elizaLogger.log(`Has Twitter API credentials: ${hasCredentials}`);
 
         return hasCredentials;
     },
     handler: async (
         runtime: IAgentRuntime,
         message: Memory,
-        state?: State
+        state?: State,
+        callback?: HandlerCallback
     ): Promise<boolean> => {
         try {
             // Generate tweet content using context

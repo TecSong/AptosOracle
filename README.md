@@ -119,7 +119,67 @@
 
 ## 🧠 Technical Architecture
 
-- [ ] coming soom
+```mermaid
+flowchart TB
+    subgraph "UI Layer" 
+        UI[Frontend Application\nReact Native + Expo]
+        WebServer
+    end
+    subgraph "Core Functionality Layer"
+        AlphaAnalysis[Real-time Alpha Post Analysis]
+        SentimentAnalysis[Sentiment Analysis]
+        ImpactAssessment[Impact Assessment]
+        TokenInsights[Smart Token Insights]
+        PersonalRec[Personalized Recommendations]
+        TokenExchange[Token Exchange]
+        MarketSentiment[Market Sentiment Tagging]
+    end
+    subgraph "Data Processing Layer"
+        DataCollection[Data Collection]
+        DataProcessing[Data Processing]
+    end
+    subgraph "Execution Layer"
+        ExecutionEngine[Execution Engine]
+    end
+    subgraph "Future Plans"
+        SocialLogin[Social Login Integration]
+        WalletCreation[Built-in Wallet Creation]
+        AdvancedAnalytics[Advanced Analytics Tools]
+        EnhancedEncryption[Enhanced Data Encryption]
+    end
+    %% UI Layer to Core Functionality Layer connections
+    UI --> AlphaAnalysis
+    UI --> SentimentAnalysis
+    UI --> ImpactAssessment
+    UI --> TokenInsights
+    UI --> PersonalRec
+    UI --> TokenExchange
+    WebServer --> UI
+    %% Core Functionality Layer to Data Processing Layer connections
+    AlphaAnalysis --> DataProcessing
+    SentimentAnalysis --> DataProcessing
+    ImpactAssessment --> DataProcessing
+    TokenInsights --> DataProcessing
+    PersonalRec --> DataProcessing
+    MarketSentiment --> DataProcessing
+    %% Data Processing Layer connections
+    DataCollection --> DataProcessing
+    %% Data sources
+    TwitterFarcaster[Social Media Platforms\nTwitter/Farcaster] --> DataCollection
+    %% Execution Layer connections
+    DataProcessing --> ExecutionEngine
+    TokenExchange --> ExecutionEngine
+    %% Execution Layer to Blockchain connection
+    Blockchain[Blockchain] <--> ExecutionEngine
+    %% Styles
+    classDef future fill:#fcf,stroke:#333,stroke-width:1px
+    class SocialLogin,WalletCreation,AdvancedAnalytics,EnhancedEncryption future
+    
+    %% Background color adjustments
+    classDef default fill:#f9f9f9,stroke:#666,stroke-width:1px
+    classDef ui fill:#e6f3ff,stroke:#666,stroke-width:1px
+    class UI,WebServer ui
+```
 
 ### TODO List
 - [ ] Integrate social login and create built-in wallet.
